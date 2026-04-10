@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crecimiento Exponencial — Simulación</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ── Variables globales de diseño ── */
+  :root {
+    --blue: #3A8FD8; --blue-dark: #185FA5;
+    --pink: #D45370; --pink-dark: #993556;
+    --bg: #0d0f14; --surface: #161a24; --surface2: #1e2330;
+    --border: rgba(255,255,255,0.08); --text: #e8eaf0;
+    --text-muted: #7a8099; --accent: #f0c060; --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Cuerpo principal: ocupa toda la pantalla sin scroll vertical ── */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Barra superior: logo + título + leyenda de créditos ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 18px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .topbar-logo {
+    height: 46px;
+    width: auto;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+  .topbar-title {
+    flex: 1;
+  }
+  .topbar-title h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.85rem, 2vw, 1.3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(120deg, var(--blue), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+  }
+  .topbar-title p {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 300;
+    margin-top: 2px;
+  }
+  .topbar-credits {
+    text-align: right;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    flex-shrink: 0;
+  }
+  .topbar-credits strong {
+    color: rgba(240,192,96,0.75);
+    font-weight: 500;
+  }
+
+  /* ── Zona principal: panel izquierdo + canvas ── */
+  .main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── Panel lateral izquierdo con controles ── */
+  .sidebar {
+    width: 210px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-right: 0.5px solid var(--border);
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface2) transparent;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+  /* ── Tarjetas de controles ── */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .card-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 9px;
+  }
+
+  /* ── Cuadrícula de estadísticas numéricas ── */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat { background: var(--surface2); border-radius: 8px; padding: 7px; text-align: center; }
+  .stat-val { font-size: 1.3rem; font-weight: 500; line-height: 1; margin-bottom: 3px; }
+  .stat-lbl { font-size: 9px; color: var(--text-muted); }
+  .stat-val.blue { color: var(--blue); }
+  .stat-val.pink { color: var(--pink); }
+  .stat-val.gen  { color: var(--accent); }
+
+  /* ── Filas de sliders ── */
+  .ctrl-row { margin-bottom: 9px; }
+  .ctrl-row:last-child { margin-bottom: 0; }
+  .ctrl-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 5px; }
+  .ctrl-label span { color: var(--text); font-weight: 500; }
+  input[type=range] { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: var(--surface2); border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--text); cursor: pointer; border: 2px solid var(--bg); }
+  input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--text); cursor: pointer; border: 2px solid var(--bg); }
+
+  /* ── Botones de selección de forma del cerco ── */
+  .shape-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .shape-btn { padding: 6px 2px; font-size: 16px; border-radius: 7px; border: 0.5px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; transition: background 0.15s, border-color 0.15s; text-align: center; line-height: 1; }
+  .shape-btn:hover { background: rgba(255,255,255,0.07); }
+  .shape-btn.active { border-color: var(--blue); background: rgba(58,143,216,0.15); }
+
+  /* ── Grupo de botones de acción ── */
+  .btn-group { display: flex; flex-direction: column; gap: 6px; }
+  button { width: 100%; padding: 8px; font-family: 'Space Mono', monospace; font-size: 11px; border-radius: 7px; border: 0.5px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; transition: background 0.15s, transform 0.1s; letter-spacing: 0.02em; }
+  button:hover { background: rgba(255,255,255,0.07); }
+  button:active { transform: scale(0.97); }
+  button.primary { background: var(--blue-dark); border-color: var(--blue); color: #fff; }
+  button.primary:hover { background: var(--blue); }
+  button.danger { background: #2a1020; border-color: var(--pink-dark); color: var(--pink); }
+  button.danger:hover { background: #3a1828; }
+  button.theme { border-color: rgba(240,192,96,0.3); color: var(--accent); }
+  button.theme:hover { background: rgba(240,192,96,0.08); }
+
+  /* ── Área central: canvas + leyenda + mensaje ── */
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 10px;
+    gap: 6px;
+  }
+  .canvas-wrap { position: relative; flex-shrink: 0; }
+  canvas { display: block; }
+  #overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+  /* ── Leyenda de colores bajo el canvas ── */
+  .legend { display: flex; gap: 16px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  /* ── Mensaje de estado de la simulación ── */
+  #msg { font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; min-height: 28px; }
+  #msg strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     BARRA SUPERIOR: logo institucional, título y créditos
+     ══════════════════════════════════════════════ -->
+<div class="topbar">
+  <!--
+    Logo institucional (CCHN_logo.png).
+    El archivo debe estar en la misma carpeta que este HTML.
+    La imagen original es 582×618 px; aquí se escala a 46px de alto
+    manteniendo proporción con width:auto.
+  -->
+  <img src="CCHN_logo.png" alt="Logo CCHN" class="topbar-logo">
+
+  <div class="topbar-title">
+    <h1>Crecimiento Exponencial</h1>
+    <p>Cada colisión rosa × azul genera un nuevo conejo/pelota — observa cómo explota la cantidad.</p>
+  </div>
+
+  <!-- Créditos académicos alineados a la derecha -->
+  <div class="topbar-credits">
+    <strong>Una idea de:</strong> Jazmín Pérez Pérez y Cecilia Villegas Ortega<br>
+    <strong>Profesor a cargo:</strong> Víctor Hugo Zepeda Aguillón
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     ZONA PRINCIPAL: controles a la izquierda, canvas al centro
+     ══════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- ── Panel lateral de controles ── -->
+  <div class="sidebar">
+
+    <!-- Estadísticas en tiempo real -->
+    <div class="card">
+      <div class="card-title">Estadísticas</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-val blue" id="s-blue">1</div><div class="stat-lbl" id="lbl-blue">Azules</div></div>
+        <div class="stat"><div class="stat-val pink" id="s-pink">1</div><div class="stat-lbl" id="lbl-pink">Rosas</div></div>
+        <div class="stat"><div class="stat-val" id="s-total">2</div><div class="stat-lbl">Total</div></div>
+        <div class="stat"><div class="stat-val gen" id="s-gen">0</div><div class="stat-lbl">Generación</div></div>
+      </div>
+    </div>
+
+    <!-- Selector de forma y tamaño del cerco -->
+    <div class="card">
+      <div class="card-title">Forma del cerco</div>
+      <div class="shape-btns" id="shape-btns">
+        <div class="shape-btn active" data-shape="circle"   title="Círculo">⬤</div>
+        <div class="shape-btn"        data-shape="square"   title="Cuadrado">■</div>
+        <div class="shape-btn"        data-shape="triangle" title="Triángulo">▲</div>
+        <div class="shape-btn"        data-shape="hexagon"  title="Hexágono">⬡</div>
+      </div>
+      <div class="ctrl-row" style="margin-top:10px">
+        <div class="ctrl-label">Tamaño del cerco <span id="v-arena">300</span></div>
+        <input type="range" id="r-arena" min="120" max="340" value="300" step="5">
+      </div>
+    </div>
+
+    <!-- Parámetros físicos de la simulación -->
+    <div class="card">
+      <div class="card-title">Física</div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Límite de conejos <span id="v-limit">60</span></div>
+        <input type="range" id="r-limit" min="10" max="1000" value="60" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Segundos extra <span id="v-cooldown">5</span></div>
+        <input type="range" id="r-cooldown" min="0" max="30" value="5" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Tamaño de los conejos <span id="v-bsize">10</span></div>
+        <input type="range" id="r-bsize" min="4" max="22" value="10" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Gravedad <span id="v-grav">0.08</span></div>
+        <input type="range" id="r-grav" min="0" max="0.5" value="0.08" step="0.01">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Velocidad inicial <span id="v-speed">3.0</span></div>
+        <input type="range" id="r-speed" min="1" max="8" value="3" step="0.5">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Elasticidad <span id="v-elast">0.85</span></div>
+        <input type="range" id="r-elast" min="0.5" max="0.98" value="0.85" step="0.01">
+      </div>
+    </div>
+
+    <!-- Botones de acción principal -->
+    <div class="card">
+      <div class="card-title">Acciones</div>
+      <div class="btn-group">
+        <button class="primary" id="btn-start">▶ Iniciar</button>
+        <button id="btn-pause">⏸ Pausar</button>
+        <button class="danger"  id="btn-reset">↺ Reiniciar</button>
+        <button class="theme"   id="btn-theme">🐰 Modo Conejos</button>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- ── Área del canvas de simulación ── -->
+  <div class="canvas-area">
+    <div class="canvas-wrap" id="canvas-wrap">
+      <!-- Canvas principal donde se dibuja la simulación -->
+      <canvas id="c"></canvas>
+      <!-- Canvas de superposición para el anillo de cuenta regresiva -->
+      <canvas id="overlay"></canvas>
+    </div>
+
+    <!-- Leyenda de colores -->
+    <div class="legend">
+      <div class="legend-item"><div class="dot" style="background:var(--blue)"></div><span id="leg-blue">Azul</span></div>
+      <div class="legend-item"><div class="dot" style="background:var(--pink)"></div><span id="leg-pink">Rosa</span></div>
+    </div>
+
+    <!-- Mensaje de estado -->
+    <div id="msg">Presiona <strong>Iniciar</strong> para comenzar la simulación.</div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   INICIALIZACIÓN DE CANVAS
+   Se ajusta el tamaño del canvas dinámicamente al espacio disponible
+   en la pantalla, dejando margen para la interfaz.
+   ════════════════════════════════════════════════════════════════ */
+const canvas  = document.getElementById('c');
+const ctx     = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const octx    = overlay.getContext('2d');
+
+/* Calcula el tamaño del canvas en función del espacio disponible */
+function getCanvasSize() {
+  const topH = document.querySelector('.topbar').offsetHeight;
+  const legH = 60; // leyenda + mensaje
+  const avH  = window.innerHeight - topH - legH - 20;
+  const avW  = window.innerWidth  - 210 - 20;
+  return Math.max(200, Math.min(avH, avW));
+}
+
+let CS = getCanvasSize(); // tamaño actual del canvas (cuadrado)
+
+/* Aplica el tamaño calculado a ambos canvas */
+function resizeCanvases() {
+  CS = getCanvasSize();
+  canvas.width  = canvas.height  = CS;
+  overlay.width = overlay.height = CS;
+}
+resizeCanvases();
+
+/* Centro del canvas (usado como referencia para toda la física) */
+const getCX = () => canvas.width  / 2;
+const getCY = () => canvas.height / 2;
+
+/* ════════════════════════════════════════════════════════════════
+   VARIABLES DE ESTADO
+   Controlan el ciclo de vida de la simulación.
+   ════════════════════════════════════════════════════════════════ */
+let balls            = [];       // arreglo de objetos pelota
+let running          = false;    // true mientras el loop está activo
+let paused           = false;    // true cuando se pausa la animación
+let animId           = null;     // ID del requestAnimationFrame activo
+let generation       = 0;        // contador de colisiones productivas
+let totalCreated     = 0;        // total de pelotas que han existido
+let useRabbit        = false;    // modo visual: conejos vs pelotas
+let collisionCooldown = new Map(); // evita crear múltiples pelotas por la misma colisión
+let flashList        = [];       // destellos visuales en puntos de colisión
+let collisionParticles = [];     // partículas de efecto en colisiones
+
+/* ════════════════════════════════════════════════════════════════
+   PARÁMETROS CONFIGURABLES (modificados por los sliders)
+   ════════════════════════════════════════════════════════════════ */
+let limit        = 60;     // número máximo de pelotas antes de activar cooldown
+let gravity      = 0.08;   // aceleración hacia abajo por frame
+let speed        = 3.0;    // velocidad inicial al generar nuevas pelotas
+let elasticity   = 0.85;   // fracción de velocidad conservada en rebotes
+let ballSize     = 10;     // radio en píxeles de cada pelota
+let arenaSize    = 300;    // radio (o semilado) del cerco
+let arenaShape   = 'circle'; // forma del cerco: 'circle', 'square', 'triangle', 'hexagon'
+let cooldownSecs = 5;      // segundos adicionales de animación tras alcanzar el límite
+let limitReachedAt = null; // timestamp en que se alcanzó el límite
+let cooldownActive = false; // true durante el período de cooldown post-límite
+
+/* Colores base para pelotas azules y rosas */
+const BLUE = '#3A8FD8', BLUE_D = '#185FA5';
+const PINK = '#D45370', PINK_D = '#993556';
+
+/* ════════════════════════════════════════════════════════════════
+   getArena()
+   Devuelve un objeto que describe la geometría del cerco actual.
+   Cada forma tiene su propio tipo y parámetros de colisión.
+   ════════════════════════════════════════════════════════════════ */
+function getArena() {
+  const s  = arenaSize;
+  const CX = getCX(), CY = getCY();
+
+  if (arenaShape === 'square') {
+    // Cuadrado centrado en el canvas
+    return { type:'square', x:CX-s, y:CY-s, w:s*2, h:s*2 };
+  }
+  if (arenaShape === 'triangle') {
+    // Triángulo equilátero apuntando hacia arriba
+    const pts = [];
+    for (let i = 0; i < 3; i++) {
+      const a = -Math.PI/2 + i * Math.PI*2/3;
+      pts.push({ x: CX + Math.cos(a)*s*1.05, y: CY + Math.sin(a)*s*1.05 });
+    }
+    return { type:'polygon', pts };
+  }
+  if (arenaShape === 'hexagon') {
+    // Hexágono regular
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI/3;
+      pts.push({ x: CX + Math.cos(a)*s, y: CY + Math.sin(a)*s });
+    }
+    return { type:'polygon', pts };
+  }
+  // Por defecto: círculo
+  return { type:'circle', r:s };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   tracePath(c, arena)
+   Dibuja el contorno del cerco en el contexto 2D proporcionado.
+   Se usa tanto para rellenar el fondo como para hacer clipping.
+   ════════════════════════════════════════════════════════════════ */
+function tracePath(c, arena) {
+  const CX = getCX(), CY = getCY();
+  if (arena.type === 'circle') {
+    c.beginPath();
+    c.arc(CX, CY, arena.r, 0, Math.PI*2);
+  } else if (arena.type === 'square') {
+    c.beginPath();
+    c.rect(arena.x, arena.y, arena.w, arena.h);
+  } else {
+    // Polígono genérico (triángulo, hexágono, etc.)
+    c.beginPath();
+    c.moveTo(arena.pts[0].x, arena.pts[0].y);
+    arena.pts.forEach(p => c.lineTo(p.x, p.y));
+    c.closePath();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   constrainBall(b, arena)
+   Aplica la física de rebote para mantener la pelota `b`
+   dentro del cerco. Detecta colisión con cada pared y
+   refleja la velocidad según la normal de la superficie.
+   ════════════════════════════════════════════════════════════════ */
+function constrainBall(b, arena) {
+  const CX = getCX(), CY = getCY();
+
+  if (arena.type === 'circle') {
+    // Distancia desde el centro; si supera el radio útil, rebotar
+    const dx = b.x-CX, dy = b.y-CY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const maxD = arena.r - b.r;
+    if (dist > maxD) {
+      const nx = dx/dist, ny = dy/dist;
+      b.x = CX + nx*maxD;
+      b.y = CY + ny*maxD;
+      const dot = b.vx*nx + b.vy*ny;
+      b.vx -= (1+elasticity)*dot*nx;
+      b.vy -= (1+elasticity)*dot*ny;
+      b.vx *= 0.98; b.vy *= 0.98;
+      b.wobbleV = -(0.2 + Math.random()*0.3);
+    }
+
+  } else if (arena.type === 'square') {
+    // Cuatro paredes independientes
+    const {x,y,w,h} = arena, r = b.r;
+    if (b.x-r < x)   { b.x=x+r;   b.vx= Math.abs(b.vx)*elasticity; b.wobbleV=-0.3; }
+    if (b.x+r > x+w) { b.x=x+w-r; b.vx=-Math.abs(b.vx)*elasticity; b.wobbleV=-0.3; }
+    if (b.y-r < y)   { b.y=y+r;   b.vy= Math.abs(b.vy)*elasticity; b.wobbleV=-0.3; }
+    if (b.y+r > y+h) { b.y=y+h-r; b.vy=-Math.abs(b.vy)*elasticity; b.wobbleV=-0.3; }
+
+  } else {
+    // Polígono: revisar cada arista por separado
+    const pts = arena.pts;
+    for (let i = 0; i < pts.length; i++) {
+      const a  = pts[i];
+      const bv = pts[(i+1) % pts.length];
+      const ex = bv.x-a.x, ey = bv.y-a.y;
+      const len = Math.sqrt(ex*ex + ey*ey);
+      // Normal interna de la arista
+      const nx = -ey/len, ny = ex/len;
+      const dist = (b.x-a.x)*nx + (b.y-a.y)*ny;
+      if (dist < b.r) {
+        const pen = b.r - dist;
+        b.x += nx*pen; b.y += ny*pen;
+        const dot = b.vx*nx + b.vy*ny;
+        if (dot < 0) {
+          b.vx -= (1+elasticity)*dot*nx;
+          b.vy -= (1+elasticity)*dot*ny;
+        }
+        b.vx *= 0.98; b.vy *= 0.98;
+        b.wobbleV = -0.3;
+      }
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   randomInside(arena)
+   Devuelve un punto aleatorio dentro del cerco, con margen
+   para que la nueva pelota no aparezca pegada a la pared.
+   ════════════════════════════════════════════════════════════════ */
+function randomInside(arena) {
+  const CX = getCX(), CY = getCY();
+  // Intentamos hasta 60 veces para evitar bucles infinitos
+  for (let t = 0; t < 60; t++) {
+    let x, y;
+    if (arena.type === 'circle') {
+      const r = (arena.r - ballSize*2) * Math.sqrt(Math.random());
+      const a = Math.random() * Math.PI*2;
+      x = CX + r*Math.cos(a); y = CY + r*Math.sin(a);
+    } else if (arena.type === 'square') {
+      x = arena.x + ballSize*2 + Math.random()*(arena.w - ballSize*4);
+      y = arena.y + ballSize*2 + Math.random()*(arena.h - ballSize*4);
+    } else {
+      // Para polígonos: zona segura dentro de un círculo inscrito reducido
+      const f = 0.35 * Math.sqrt(Math.random());
+      const a = Math.random() * Math.PI*2;
+      x = CX + Math.cos(a)*arenaSize*f;
+      y = CY + Math.sin(a)*arenaSize*f;
+    }
+    return { x, y };
+  }
+  return { x:CX, y:CY }; // fallback al centro
+}
+
+/* ════════════════════════════════════════════════════════════════
+   makeBall(x, y, type, vx, vy)
+   Crea y devuelve un objeto pelota con todos sus atributos.
+   - x, y: posición inicial
+   - type: 'blue' o 'pink'
+   - vx, vy: componentes de velocidad inicial
+   ════════════════════════════════════════════════════════════════ */
+function makeBall(x, y, type, vx, vy) {
+  return {
+    x, y, vx, vy,
+    r: ballSize,          // radio visual y de colisión
+    type,                 // color/género
+    trail: [],            // posiciones recientes para dibujar la estela
+    age: 0,               // frames de vida (actualmente no usado para lógica)
+    wobble: 0,            // ángulo de deformación visual tras colisión
+    wobbleV: 0            // velocidad angular del wobble (decae con amortiguación)
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   spawnInitial()
+   Reinicia el estado y crea las dos pelotas iniciales (azul y rosa)
+   en posiciones opuestas dentro del cerco, con velocidades tangenciales.
+   ════════════════════════════════════════════════════════════════ */
+function spawnInitial() {
+  const CX = getCX(), CY = getCY();
+  const a1 = Math.random() * Math.PI*2;
+  const a2 = a1 + Math.PI + (Math.random()-0.5)*0.8; // posición opuesta con leve variación
+  const d  = arenaSize * 0.35;
+
+  balls = [
+    makeBall(
+      CX + Math.cos(a1)*d, CY + Math.sin(a1)*d, 'blue',
+      Math.cos(a1+Math.PI/2)*speed*(0.8+Math.random()*0.4),
+      Math.sin(a1+Math.PI/2)*speed*(0.8+Math.random()*0.4)
+    ),
+    makeBall(
+      CX + Math.cos(a2)*d, CY + Math.sin(a2)*d, 'pink',
+      Math.cos(a2+Math.PI/2)*speed*(0.8+Math.random()*0.4),
+      Math.sin(a2+Math.PI/2)*speed*(0.8+Math.random()*0.4)
+    )
+  ];
+  generation = 0; totalCreated = 2;
+  limitReachedAt = null; cooldownActive = false;
+  collisionCooldown.clear();
+  collisionParticles = []; flashList = [];
+  updateStats();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   updateStats()
+   Actualiza los contadores de la interfaz (azules, rosas, total,
+   generación) y los textos de leyenda según el modo visual activo.
+   ════════════════════════════════════════════════════════════════ */
+function updateStats() {
+  let b = 0, p = 0;
+  balls.forEach(bl => bl.type==='blue' ? b++ : p++);
+  document.getElementById('s-blue').textContent  = b;
+  document.getElementById('s-pink').textContent  = p;
+  document.getElementById('s-total').textContent = balls.length;
+  document.getElementById('s-gen').textContent   = generation;
+  const bl = useRabbit ? 'Machos'  : 'Azules';
+  const pk = useRabbit ? 'Hembras' : 'Rosas';
+  ['lbl-blue','leg-blue'].forEach(id => document.getElementById(id).textContent = bl);
+  ['lbl-pink','leg-pink'].forEach(id => document.getElementById(id).textContent = pk);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   drawBall(b)
+   Dibuja una pelota en el canvas principal usando un gradiente
+   radial que simula iluminación esférica. La pelota se deforma
+   levemente (efecto "wobble") tras cada colisión.
+   ════════════════════════════════════════════════════════════════ */
+function drawBall(b) {
+  ctx.save();
+  const c  = b.type==='blue' ? BLUE   : PINK;
+  const cd = b.type==='blue' ? BLUE_D : PINK_D;
+
+  if (useRabbit) {
+    drawRabbit(b, c, cd);
+  } else {
+    // Escala eje X/Y para simular aplastamiento en la dirección de movimiento
+    const ws = 1 + Math.sin(b.wobble)*0.06;
+    const rx = b.r * ws, ry = b.r / ws;
+    ctx.translate(b.x, b.y);
+    ctx.rotate(Math.atan2(b.vy, b.vx)); // orienta la deformación hacia el movimiento
+
+    // Gradiente que simula una fuente de luz en la parte superior-izquierda
+    const g = ctx.createRadialGradient(-rx*0.3, -ry*0.3, rx*0.05, 0, 0, rx*1.1);
+    g.addColorStop(0, 'rgba(255,255,255,0.7)');
+    g.addColorStop(0.35, c);
+    g.addColorStop(1, cd);
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Brillo pequeño en la parte superior (reflexión especular)
+    ctx.beginPath();
+    ctx.ellipse(-rx*0.3, -ry*0.3, rx*0.18, ry*0.12, Math.PI*0.6, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   drawRabbit(b, c, cd)
+   Dibuja un conejo esquemático usando elipses para el cuerpo,
+   orejas, ojos y nariz. Se escala con b.r para ser proporcional.
+   ════════════════════════════════════════════════════════════════ */
+function drawRabbit(b, c, cd) {
+  ctx.translate(b.x, b.y);
+  const s = b.r / 10; // escala proporcional al radio
+  ctx.scale(s, s);
+
+  ctx.fillStyle = c;
+  ctx.beginPath(); ctx.ellipse(0,   2, 7, 9, 0, 0, Math.PI*2); ctx.fill(); // cuerpo
+  ctx.beginPath(); ctx.ellipse(-4, -7, 2, 6, -.4, 0, Math.PI*2); ctx.fill(); // oreja izq
+  ctx.beginPath(); ctx.ellipse( 4, -7, 2, 6,  .4, 0, Math.PI*2); ctx.fill(); // oreja der
+
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath(); ctx.ellipse(-3,-6,1,4,-.3,0,Math.PI*2); ctx.fill(); // interior oreja izq
+  ctx.beginPath(); ctx.ellipse( 3,-6,1,4, .3,0,Math.PI*2); ctx.fill(); // interior oreja der
+
+  ctx.fillStyle = cd;
+  ctx.beginPath(); ctx.ellipse(-2.5,-1,1.5,1.5,0,0,Math.PI*2); ctx.fill(); // ojo izq
+  ctx.beginPath(); ctx.ellipse( 2.5,-1,1.5,1.5,0,0,Math.PI*2); ctx.fill(); // ojo der
+
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(-2.5,-1,0.7,0.7,0,0,Math.PI*2); ctx.fill(); // reflejo ojo izq
+  ctx.beginPath(); ctx.ellipse( 2.5,-1,0.7,0.7,0,0,Math.PI*2); ctx.fill(); // reflejo ojo der
+
+  ctx.fillStyle = 'rgba(255,180,190,0.7)';
+  ctx.beginPath(); ctx.ellipse(0,2.5,2,1.5,0,0,Math.PI*2); ctx.fill(); // nariz/panza
+}
+
+/* ════════════════════════════════════════════════════════════════
+   addParticles(x, y)
+   Genera partículas de colisión en la posición (x, y).
+   Cada partícula tiene dirección y velocidad aleatoria, y se
+   desvanece gradualmente hasta desaparecer.
+   ════════════════════════════════════════════════════════════════ */
+function addParticles(x, y) {
+  for (let i = 0; i < 8; i++) {
+    const a  = Math.random() * Math.PI*2;
+    const sp = 1 + Math.random()*3;
+    collisionParticles.push({
+      x, y,
+      vx: Math.cos(a)*sp, vy: Math.sin(a)*sp,
+      life: 1,  // opacidad inicial (1 = 100%)
+      c: Math.random() > 0.5 ? BLUE : PINK
+    });
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   collidePair(a, b)
+   Detecta y resuelve la colisión física entre dos pelotas.
+   Usa resolución de impulso: calcula la velocidad relativa en
+   la dirección normal al contacto y redistribuye el momentum.
+   Retorna true si hubo colisión efectiva.
+   ════════════════════════════════════════════════════════════════ */
+function collidePair(a, b) {
+  const dx = b.x-a.x, dy = b.y-a.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (!dist) return false;
+
+  const minD = a.r + b.r;
+  if (dist > minD) return false; // no hay solapamiento
+
+  const nx = dx/dist, ny = dy/dist; // normal unitaria del contacto
+  const dvx = a.vx-b.vx, dvy = a.vy-b.vy;
+  const dot = dvx*nx + dvy*ny; // velocidad relativa en dirección normal
+  if (dot <= 0) return false;  // se alejan, ignorar
+
+  // Impulso proporcional a la elasticidad configurada
+  const imp = dot * elasticity;
+  a.vx -= imp*nx; a.vy -= imp*ny;
+  b.vx += imp*nx; b.vy += imp*ny;
+
+  // Separar las pelotas para evitar solapamiento visual
+  const ov = (minD - dist)/2 + 0.5;
+  a.x -= nx*ov; a.y -= ny*ov;
+  b.x += nx*ov; b.y += ny*ov;
+
+  // Activar efecto visual de deformación en ambas pelotas
+  a.wobble += 0.8; b.wobble += 0.8;
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   step()
+   Avanza un frame de la simulación:
+   1. Aplica gravedad y mueve todas las pelotas
+   2. Comprueba colisiones con las paredes del cerco
+   3. Comprueba colisiones entre pares de pelotas
+   4. Si colisionan una azul y una rosa (y no hay cooldown),
+      genera una nueva pelota desde el interior del cerco
+   ════════════════════════════════════════════════════════════════ */
+function step() {
+  const arena = getArena();
+
+  // ── Paso 1: Física de cada pelota individualmente ──
+  balls.forEach(b => {
+    b.vy += gravity;       // gravedad (aceleración hacia abajo)
+    b.vx *= 0.9995;        // rozamiento del aire (levísima pérdida)
+    b.vy *= 0.9995;
+    b.x  += b.vx;          // integrar posición
+    b.y  += b.vy;
+    b.wobble  += b.wobbleV; // avanzar deformación
+    b.wobble  *= 0.92;      // amortiguación del wobble
+    b.age++;
+
+    // Guardar posición para la estela visual
+    b.trail.push({ x:b.x, y:b.y });
+    if (b.trail.length > 12) b.trail.shift();
+
+    // Rebotar contra las paredes del cerco
+    constrainBall(b, arena);
+  });
+
+  // ── Paso 2: Colisiones entre pares de pelotas ──
+  for (let i = 0; i < balls.length; i++) {
+    for (let j = i+1; j < balls.length; j++) {
+      const a  = balls[i];
+      const bv = balls[j];
+      const hit = collidePair(a, bv);
+
+      // Si colisionaron una azul y una rosa, y el límite no está alcanzado...
+      if (hit && a.type !== bv.type && !cooldownActive && balls.length < limit) {
+        // Clave única para este par, con cooldown de 1.2 s entre generaciones
+        const key = `${Math.min(i,j)}-${Math.max(i,j)}`;
+        const now = performance.now();
+        if (!collisionCooldown.has(key) || (now - collisionCooldown.get(key)) > 1200) {
+          collisionCooldown.set(key, now);
+          generation++; totalCreated++;
+
+          // Nueva pelota de color aleatorio, posición central, velocidad aleatoria
+          const newType = Math.random() < 0.5 ? 'blue' : 'pink';
+          const sa = Math.random() * Math.PI*2;
+          const sp = speed * (0.7 + Math.random()*0.6);
+          const pos = randomInside(arena);
+          balls.push(makeBall(pos.x, pos.y, newType, Math.cos(sa)*sp, Math.sin(sa)*sp));
+
+          // Efectos visuales en el punto de colisión
+          addParticles((a.x+bv.x)/2, (a.y+bv.y)/2);
+          flashList.push({ x:(a.x+bv.x)/2, y:(a.y+bv.y)/2, life:1 });
+          updateStats();
+        }
+      }
+    }
+  }
+
+  // Desvanecer los destellos frame a frame
+  flashList = flashList.filter(f => { f.life -= 0.07; return f.life > 0; });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   drawCountdown(elapsed, total)
+   Dibuja en el canvas de superposición (overlay) el anillo
+   de cuenta regresiva que aparece al alcanzar el límite de pelotas.
+   El arco dorado se reduce conforme avanza el tiempo.
+   ════════════════════════════════════════════════════════════════ */
+function drawCountdown(elapsed, total) {
+  const CX = getCX(), CY = getCY();
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+
+  const frac     = Math.max(0, 1 - elapsed/total); // fracción restante (1→0)
+  const secsLeft = Math.ceil((total - elapsed)/1000);
+  const r        = arenaSize + 14;
+
+  octx.save();
+  octx.lineWidth = 5;
+
+  // Anillo de fondo semitransparente
+  octx.strokeStyle = 'rgba(240,192,80,0.12)';
+  octx.beginPath(); octx.arc(CX,CY,r,0,Math.PI*2); octx.stroke();
+
+  // Arco de progreso dorado que se vacía con el tiempo
+  octx.strokeStyle = `rgba(240,192,80,${0.5 + frac*0.45})`;
+  octx.lineCap = 'round';
+  octx.beginPath();
+  octx.arc(CX, CY, r, -Math.PI/2, -Math.PI/2 + frac*Math.PI*2);
+  octx.stroke();
+
+  // Número de segundos restantes sobre el cerco
+  octx.fillStyle = `rgba(240,192,80,${0.6 + frac*0.35})`;
+  octx.font = `700 22px 'Space Mono', monospace`;
+  octx.textAlign = 'center'; octx.textBaseline = 'middle';
+  octx.fillText(secsLeft+'s', CX, CY - arenaSize - 18);
+  octx.restore();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   render()
+   Dibuja un frame completo de la simulación en el canvas:
+   1. Limpia y rellena el fondo dentro del cerco
+   2. Dibuja el borde del cerco
+   3. Dibuja las estelas de movimiento de cada pelota
+   4. Dibuja las partículas de colisión
+   5. Dibuja los destellos de nuevas pelotas
+   6. Dibuja todas las pelotas encima
+   ════════════════════════════════════════════════════════════════ */
+function render() {
+  const CX = getCX(), CY = getCY();
+  const arena = getArena();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // ── Fondo con degradado radial recortado al cerco ──
+  ctx.save();
+  tracePath(ctx, arena);
+  ctx.clip();
+  const grad = ctx.createRadialGradient(CX,CY,0, CX,CY,arenaSize*1.3);
+  grad.addColorStop(0, '#161d2e');
+  grad.addColorStop(1, '#0a0c12');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  // ── Borde del cerco ──
+  ctx.save();
+  tracePath(ctx, arena);
+  ctx.strokeStyle = 'rgba(100,140,220,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Estelas de movimiento ──
+  balls.forEach(b => {
+    if (b.trail.length < 2) return;
+    const c = b.type==='blue' ? '58,143,216' : '212,83,112';
+    ctx.beginPath();
+    ctx.moveTo(b.trail[0].x, b.trail[0].y);
+    for (let i = 1; i < b.trail.length; i++) ctx.lineTo(b.trail[i].x, b.trail[i].y);
+    ctx.strokeStyle = `rgba(${c},0.12)`;
+    ctx.lineWidth = b.r * 0.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  });
+
+  // ── Partículas de colisión (se actualizan aquí mismo) ──
+  collisionParticles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.c;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2*p.life, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  collisionParticles = collisionParticles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.life -= 0.06; return p.life > 0;
+  });
+
+  // ── Destellos de nueva pelota generada ──
+  flashList.forEach(f => {
+    ctx.save();
+    ctx.globalAlpha = f.life * 0.6;
+    ctx.strokeStyle = `rgba(240,192,80,${f.life})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(f.x, f.y, 20*(1-f.life)+5, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+  });
+
+  // ── Pelotas / conejos ──
+  balls.forEach(drawBall);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   loop()
+   Bucle principal de animación. Se llama a sí mismo con
+   requestAnimationFrame ~60 veces por segundo. En cada frame:
+   - Si no está pausado: avanza la física (step) y dibuja (render)
+   - Verifica si se alcanzó el límite de pelotas
+   - Gestiona el período de cooldown post-límite
+   - Se detiene automáticamente al terminar el cooldown
+   ════════════════════════════════════════════════════════════════ */
+function loop() {
+  if (!paused) { step(); render(); }
+
+  // ── Verificar si se alcanzó el límite por primera vez ──
+  if (balls.length >= limit && !cooldownActive) {
+    if (cooldownSecs > 0) {
+      // Activar período de gracia: la animación continúa N segundos más
+      cooldownActive = true;
+      limitReachedAt = performance.now();
+      document.getElementById('msg').innerHTML =
+        `<strong>¡Límite alcanzado!</strong> ${totalCreated} pelotas — continuando ${cooldownSecs}s más...`;
+    } else {
+      // Sin período de gracia: detener inmediatamente
+      document.getElementById('msg').innerHTML =
+        `<strong>¡Límite alcanzado!</strong> ${totalCreated} pelotas en ${generation} colisiones.`;
+      octx.clearRect(0,0,overlay.width,overlay.height);
+      running = false; render(); return;
+    }
+  }
+
+  // ── Gestionar período de cooldown ──
+  if (cooldownActive) {
+    const elapsed = performance.now() - limitReachedAt;
+    const total   = cooldownSecs * 1000;
+    if (elapsed >= total) {
+      // Cooldown terminado: detener la simulación
+      document.getElementById('msg').innerHTML =
+        `<strong>¡Simulación completa!</strong> ${totalCreated} pelotas, ${generation} colisiones — crecimiento exponencial en acción.`;
+      octx.clearRect(0,0,overlay.width,overlay.height);
+      running = false; return;
+    }
+    // Dibujar el anillo de cuenta regresiva en el overlay
+    drawCountdown(elapsed, total);
+  }
+
+  animId = requestAnimationFrame(loop);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MANEJADORES DE EVENTOS DE BOTONES
+   ════════════════════════════════════════════════════════════════ */
+
+/* Botón Iniciar: prepara el estado inicial y arranca el loop */
+document.getElementById('btn-start').addEventListener('click', () => {
+  if (running) return;
+  spawnInitial(); running = true; paused = false;
+  document.getElementById('msg').textContent = 'Las colisiones rosa × azul generan nuevos conejos.';
+  document.getElementById('btn-pause').textContent = '⏸ Pausar';
+  animId = requestAnimationFrame(loop);
+});
+
+/* Botón Pausar/Reanudar: congela o reanuda el loop */
+document.getElementById('btn-pause').addEventListener('click', () => {
+  if (!running) return;
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? '▶ Reanudar' : '⏸ Pausar';
+  if (!paused) animId = requestAnimationFrame(loop);
+});
+
+/* Botón Reiniciar: cancela el loop y limpia todo el estado */
+document.getElementById('btn-reset').addEventListener('click', () => {
+  cancelAnimationFrame(animId); running = false; paused = false;
+  balls = []; collisionParticles = []; flashList = [];
+  generation = 0; totalCreated = 0; limitReachedAt = null; cooldownActive = false;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  document.getElementById('msg').textContent = 'Presiona Iniciar para comenzar la simulación.';
+  document.getElementById('btn-pause').textContent = '⏸ Pausar';
+  updateStats();
+});
+
+/* Botón Modo Conejos/Pelotas: alterna el modo visual */
+document.getElementById('btn-theme').addEventListener('click', () => {
+  useRabbit = !useRabbit;
+  document.getElementById('btn-theme').textContent = useRabbit ? '🎱 Modo Pelotas' : '🐰 Modo Conejos';
+  updateStats();
+});
+
+/* Botones de forma del cerco: cambian arenaShape y el border-radius visual */
+document.getElementById('shape-btns').addEventListener('click', e => {
+  const btn = e.target.closest('[data-shape]'); if (!btn) return;
+  document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  arenaShape = btn.dataset.shape;
+  const br = arenaShape === 'circle' ? '50%' : '8px';
+  canvas.style.borderRadius  = br;
+  overlay.style.borderRadius = br;
+});
+
+/* ════════════════════════════════════════════════════════════════
+   bindSlider(id, valId, setter, fmt)
+   Conecta un slider HTML con una variable de configuración.
+   - id: ID del elemento <input type="range">
+   - valId: ID del <span> donde se muestra el valor actual
+   - setter: función que recibe el nuevo valor y lo aplica
+   - fmt: decimales a mostrar (0 = entero)
+   ════════════════════════════════════════════════════════════════ */
+function bindSlider(id, valId, setter, fmt) {
+  document.getElementById(id).addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    setter(v);
+    document.getElementById(valId).textContent = fmt ? v.toFixed(fmt) : v;
+  });
+}
+
+/* Registrar todos los sliders */
+bindSlider('r-limit',    'v-limit',    v => limit = v,                          0);
+bindSlider('r-cooldown', 'v-cooldown', v => cooldownSecs = v,                   0);
+bindSlider('r-bsize',    'v-bsize',    v => { ballSize = v; balls.forEach(b => b.r = v); }, 0);
+bindSlider('r-grav',     'v-grav',     v => gravity = v,                         2);
+bindSlider('r-speed',    'v-speed',    v => speed = v,                           1);
+bindSlider('r-elast',    'v-elast',    v => elasticity = v,                      2);
+bindSlider('r-arena',    'v-arena',    v => arenaSize = v,                       0);
+
+/* ════════════════════════════════════════════════════════════════
+   INICIALIZACIÓN
+   Ajusta border-radius del canvas, actualiza labels y dibuja
+   el cerco vacío inicial.
+   ════════════════════════════════════════════════════════════════ */
+canvas.style.borderRadius  = '50%';
+overlay.style.borderRadius = '50%';
+updateStats();
+
+/* Redibujar el cerco vacío al cambiar el tamaño de ventana */
+window.addEventListener('resize', () => {
+  resizeCanvases();
+  if (!running) {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const arena = getArena();
+    const CX = getCX(), CY = getCY();
+    ctx.save();
+    tracePath(ctx, arena); ctx.clip();
+    const grad = ctx.createRadialGradient(CX,CY,0,CX,CY,arenaSize*1.3);
+    grad.addColorStop(0,'#161d2e'); grad.addColorStop(1,'#0a0c12');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.restore();
+    tracePath(ctx, arena);
+    ctx.strokeStyle='rgba(100,140,220,0.3)'; ctx.lineWidth=1.5; ctx.stroke();
+  }
+});
+</script>
+</body>
+</html>
