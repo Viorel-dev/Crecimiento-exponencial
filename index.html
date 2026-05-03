@@ -17,10 +17,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   /* ── Cuerpo principal: ocupa toda la pantalla sin scroll vertical ── */
-  html, body {
-    height: 100%;
-    overflow: hidden;
-  }
+  html, body { height: 100%; overflow: hidden; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -29,7 +26,7 @@
     flex-direction: column;
   }
 
-  /* ── Barra superior: logo + título + leyenda de créditos ── */
+  /* ── Barra superior: logo + título + créditos ── */
   .topbar {
     display: flex;
     align-items: center;
@@ -45,9 +42,7 @@
     opacity: 0.9;
     flex-shrink: 0;
   }
-  .topbar-title {
-    flex: 1;
-  }
+  .topbar-title { flex: 1; }
   .topbar-title h1 {
     font-family: 'Space Mono', monospace;
     font-size: clamp(0.85rem, 2vw, 1.3rem);
@@ -82,7 +77,6 @@
     display: flex;
     flex: 1;
     min-height: 0;
-    gap: 0;
     overflow: hidden;
   }
 
@@ -151,8 +145,6 @@
   button.primary:hover { background: var(--blue); }
   button.danger { background: #2a1020; border-color: var(--pink-dark); color: var(--pink); }
   button.danger:hover { background: #3a1828; }
-  button.theme { border-color: rgba(240,192,96,0.3); color: var(--accent); }
-  button.theme:hover { background: rgba(240,192,96,0.08); }
 
   /* ── Área central: canvas + leyenda + mensaje ── */
   .canvas-area {
@@ -194,8 +186,8 @@
   <img src="CCHN_logo.png" alt="Logo CCHN" class="topbar-logo">
 
   <div class="topbar-title">
-    <h1>Crecimiento Exponencial</h1>
-    <p>Cada colisión rosa × azul genera un nuevo conejo/pelota — observa cómo explota la cantidad.</p>
+    <h1>Crecimiento Exponencial — Conejos</h1>
+    <p>Cada colisión entre un conejo macho y una hembra genera una nueva cría — observa cómo explota la población.</p>
   </div>
 
   <!-- Créditos académicos alineados a la derecha -->
@@ -217,8 +209,8 @@
     <div class="card">
       <div class="card-title">Estadísticas</div>
       <div class="stat-grid">
-        <div class="stat"><div class="stat-val blue" id="s-blue">1</div><div class="stat-lbl" id="lbl-blue">Azules</div></div>
-        <div class="stat"><div class="stat-val pink" id="s-pink">1</div><div class="stat-lbl" id="lbl-pink">Rosas</div></div>
+        <div class="stat"><div class="stat-val blue" id="s-blue">1</div><div class="stat-lbl" id="lbl-blue">Machos</div></div>
+        <div class="stat"><div class="stat-val pink" id="s-pink">1</div><div class="stat-lbl" id="lbl-pink">Hembras</div></div>
         <div class="stat"><div class="stat-val" id="s-total">2</div><div class="stat-lbl">Total</div></div>
         <div class="stat"><div class="stat-val gen" id="s-gen">0</div><div class="stat-lbl">Generación</div></div>
       </div>
@@ -234,8 +226,8 @@
         <div class="shape-btn"        data-shape="hexagon"  title="Hexágono">⬡</div>
       </div>
       <div class="ctrl-row" style="margin-top:10px">
-        <div class="ctrl-label">Tamaño del cerco <span id="v-arena">300</span></div>
-        <input type="range" id="r-arena" min="120" max="340" value="300" step="5">
+        <div class="ctrl-label">Tamaño del cerco <span id="v-arena">240</span></div>
+        <input type="range" id="r-arena" min="120" max="340" value="240" step="5">
       </div>
     </div>
 
@@ -251,11 +243,11 @@
         <input type="range" id="r-cooldown" min="0" max="30" value="20" step="1">
       </div>
       <div class="ctrl-row">
-        <div class="ctrl-label">Tamaño de los conejos <span id="v-bsize">7</span></div>
+        <div class="ctrl-label">Tamaño de conejos <span id="v-bsize">7</span></div>
         <input type="range" id="r-bsize" min="4" max="22" value="7" step="1">
       </div>
       <div class="ctrl-row">
-        <div class="ctrl-label">Gravedad <span id="v-grav">0.08</span></div>
+        <div class="ctrl-label">Gravedad <span id="v-grav">0.02</span></div>
         <input type="range" id="r-grav" min="0" max="0.5" value="0.02" step="0.01">
       </div>
       <div class="ctrl-row">
@@ -275,7 +267,6 @@
         <button class="primary" id="btn-start">▶ Iniciar</button>
         <button id="btn-pause">⏸ Pausar</button>
         <button class="danger"  id="btn-reset">↺ Reiniciar</button>
-        <button class="theme"   id="btn-theme">🐰 Modo Conejos</button>
       </div>
     </div>
 
@@ -290,10 +281,10 @@
       <canvas id="overlay"></canvas>
     </div>
 
-    <!-- Leyenda de colores -->
+    <!-- Leyenda de géneros -->
     <div class="legend">
-      <div class="legend-item"><div class="dot" style="background:var(--blue)"></div><span id="leg-blue">Azul</span></div>
-      <div class="legend-item"><div class="dot" style="background:var(--pink)"></div><span id="leg-pink">Rosa</span></div>
+      <div class="legend-item"><div class="dot" style="background:var(--blue)"></div><span id="leg-blue">Macho</span></div>
+      <div class="legend-item"><div class="dot" style="background:var(--pink)"></div><span id="leg-pink">Hembra</span></div>
     </div>
 
     <!-- Mensaje de estado -->
@@ -340,32 +331,32 @@ const getCY = () => canvas.height / 2;
    VARIABLES DE ESTADO
    Controlan el ciclo de vida de la simulación.
    ════════════════════════════════════════════════════════════════ */
-let balls            = [];       // arreglo de objetos pelota
-let running          = false;    // true mientras el loop está activo
-let paused           = false;    // true cuando se pausa la animación
-let animId           = null;     // ID del requestAnimationFrame activo
-let generation       = 0;        // contador de colisiones productivas
-let totalCreated     = 0;        // total de pelotas que han existido
-let useRabbit        = false;    // modo visual: conejos vs pelotas
-let collisionCooldown = new Map(); // evita crear múltiples pelotas por la misma colisión
-let flashList        = [];       // destellos visuales en puntos de colisión
-let collisionParticles = [];     // partículas de efecto en colisiones
+let balls              = [];       // arreglo de objetos conejo
+let running            = false;    // true mientras el loop está activo
+let paused             = false;    // true cuando se pausa la animación
+let animId             = null;     // ID del requestAnimationFrame activo
+let generation         = 0;        // contador de colisiones productivas
+let totalCreated       = 0;        // total de conejos que han existido
+let collisionCooldown  = new Map(); // evita crear múltiples conejos por la misma colisión
+let flashList          = [];       // destellos visuales en puntos de colisión
+let collisionParticles = [];       // partículas de efecto en colisiones
 
 /* ════════════════════════════════════════════════════════════════
    PARÁMETROS CONFIGURABLES (modificados por los sliders)
+   Los valores iniciales reflejan las preferencias del usuario.
    ════════════════════════════════════════════════════════════════ */
-let limit        = 60;     // número máximo de pelotas antes de activar cooldown
-let gravity      = 0.08;   // aceleración hacia abajo por frame
-let speed        = 3.0;    // velocidad inicial al generar nuevas pelotas
-let elasticity   = 0.85;   // fracción de velocidad conservada en rebotes
-let ballSize     = 10;     // radio en píxeles de cada pelota
-let arenaSize    = 300;    // radio (o semilado) del cerco
-let arenaShape   = 'circle'; // forma del cerco: 'circle', 'square', 'triangle', 'hexagon'
-let cooldownSecs = 5;      // segundos adicionales de animación tras alcanzar el límite
-let limitReachedAt = null; // timestamp en que se alcanzó el límite
-let cooldownActive = false; // true durante el período de cooldown post-límite
+let limit          = 1000;    // número máximo de conejos antes de activar cooldown
+let gravity        = 0.02;    // aceleración hacia abajo por frame (baja para movimiento suave)
+let speed          = 3.0;     // velocidad inicial al generar nuevos conejos
+let elasticity     = 0.95;    // fracción de velocidad conservada en rebotes (alta = muy elástico)
+let ballSize       = 7;       // radio en píxeles de cada conejo
+let arenaSize      = 240;     // radio (o semilado) del cerco en píxeles
+let arenaShape     = 'circle'; // forma del cerco: 'circle', 'square', 'triangle', 'hexagon'
+let cooldownSecs   = 20;      // segundos adicionales de animación tras alcanzar el límite
+let limitReachedAt = null;    // timestamp en que se alcanzó el límite
+let cooldownActive = false;   // true durante el período de cooldown post-límite
 
-/* Colores base para pelotas azules y rosas */
+/* Colores base: azul para machos, rosa para hembras */
 const BLUE = '#3A8FD8', BLUE_D = '#185FA5';
 const PINK = '#D45370', PINK_D = '#993556';
 
@@ -428,7 +419,7 @@ function tracePath(c, arena) {
 
 /* ════════════════════════════════════════════════════════════════
    constrainBall(b, arena)
-   Aplica la física de rebote para mantener la pelota `b`
+   Aplica la física de rebote para mantener el conejo `b`
    dentro del cerco. Detecta colisión con cada pared y
    refleja la velocidad según la normal de la superficie.
    ════════════════════════════════════════════════════════════════ */
@@ -488,11 +479,10 @@ function constrainBall(b, arena) {
 /* ════════════════════════════════════════════════════════════════
    randomInside(arena)
    Devuelve un punto aleatorio dentro del cerco, con margen
-   para que la nueva pelota no aparezca pegada a la pared.
+   para que el nuevo conejo no aparezca pegado a la pared.
    ════════════════════════════════════════════════════════════════ */
 function randomInside(arena) {
   const CX = getCX(), CY = getCY();
-  // Intentamos hasta 60 veces para evitar bucles infinitos
   for (let t = 0; t < 60; t++) {
     let x, y;
     if (arena.type === 'circle') {
@@ -516,26 +506,26 @@ function randomInside(arena) {
 
 /* ════════════════════════════════════════════════════════════════
    makeBall(x, y, type, vx, vy)
-   Crea y devuelve un objeto pelota con todos sus atributos.
-   - x, y: posición inicial
-   - type: 'blue' o 'pink'
+   Crea y devuelve un objeto conejo con todos sus atributos.
+   - x, y:  posición inicial
+   - type:  'blue' (macho) o 'pink' (hembra)
    - vx, vy: componentes de velocidad inicial
    ════════════════════════════════════════════════════════════════ */
 function makeBall(x, y, type, vx, vy) {
   return {
     x, y, vx, vy,
-    r: ballSize,          // radio visual y de colisión
-    type,                 // color/género
-    trail: [],            // posiciones recientes para dibujar la estela
-    age: 0,               // frames de vida (actualmente no usado para lógica)
-    wobble: 0,            // ángulo de deformación visual tras colisión
-    wobbleV: 0            // velocidad angular del wobble (decae con amortiguación)
+    r: ballSize,    // radio visual y de colisión
+    type,           // 'blue' = macho | 'pink' = hembra
+    trail: [],      // posiciones recientes para la estela visual
+    age: 0,         // frames de vida
+    wobble: 0,      // ángulo de deformación visual tras colisión
+    wobbleV: 0      // velocidad angular del wobble (decae con amortiguación)
   };
 }
 
 /* ════════════════════════════════════════════════════════════════
    spawnInitial()
-   Reinicia el estado y crea las dos pelotas iniciales (azul y rosa)
+   Reinicia el estado y crea los dos conejos iniciales (macho y hembra)
    en posiciones opuestas dentro del cerco, con velocidades tangenciales.
    ════════════════════════════════════════════════════════════════ */
 function spawnInitial() {
@@ -565,8 +555,8 @@ function spawnInitial() {
 
 /* ════════════════════════════════════════════════════════════════
    updateStats()
-   Actualiza los contadores de la interfaz (azules, rosas, total,
-   generación) y los textos de leyenda según el modo visual activo.
+   Actualiza los contadores de la interfaz (machos, hembras, total,
+   generación). Las etiquetas son fijas: Machos / Hembras.
    ════════════════════════════════════════════════════════════════ */
 function updateStats() {
   let b = 0, p = 0;
@@ -575,61 +565,18 @@ function updateStats() {
   document.getElementById('s-pink').textContent  = p;
   document.getElementById('s-total').textContent = balls.length;
   document.getElementById('s-gen').textContent   = generation;
-  const bl = useRabbit ? 'Machos'  : 'Azules';
-  const pk = useRabbit ? 'Hembras' : 'Rosas';
-  ['lbl-blue','leg-blue'].forEach(id => document.getElementById(id).textContent = bl);
-  ['lbl-pink','leg-pink'].forEach(id => document.getElementById(id).textContent = pk);
-}
-
-/* ════════════════════════════════════════════════════════════════
-   drawBall(b)
-   Dibuja una pelota en el canvas principal usando un gradiente
-   radial que simula iluminación esférica. La pelota se deforma
-   levemente (efecto "wobble") tras cada colisión.
-   ════════════════════════════════════════════════════════════════ */
-function drawBall(b) {
-  ctx.save();
-  const c  = b.type==='blue' ? BLUE   : PINK;
-  const cd = b.type==='blue' ? BLUE_D : PINK_D;
-
-  if (useRabbit) {
-    drawRabbit(b, c, cd);
-  } else {
-    // Escala eje X/Y para simular aplastamiento en la dirección de movimiento
-    const ws = 1 + Math.sin(b.wobble)*0.06;
-    const rx = b.r * ws, ry = b.r / ws;
-    ctx.translate(b.x, b.y);
-    ctx.rotate(Math.atan2(b.vy, b.vx)); // orienta la deformación hacia el movimiento
-
-    // Gradiente que simula una fuente de luz en la parte superior-izquierda
-    const g = ctx.createRadialGradient(-rx*0.3, -ry*0.3, rx*0.05, 0, 0, rx*1.1);
-    g.addColorStop(0, 'rgba(255,255,255,0.7)');
-    g.addColorStop(0.35, c);
-    g.addColorStop(1, cd);
-
-    ctx.beginPath();
-    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-
-    // Brillo pequeño en la parte superior (reflexión especular)
-    ctx.beginPath();
-    ctx.ellipse(-rx*0.3, -ry*0.3, rx*0.18, ry*0.12, Math.PI*0.6, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fill();
-  }
-  ctx.restore();
 }
 
 /* ════════════════════════════════════════════════════════════════
    drawRabbit(b, c, cd)
    Dibuja un conejo esquemático usando elipses para el cuerpo,
    orejas, ojos y nariz. Se escala con b.r para ser proporcional.
+   - b:  objeto conejo (posición, radio)
+   - c:  color principal (azul o rosa)
+   - cd: color oscuro para detalles
    ════════════════════════════════════════════════════════════════ */
 function drawRabbit(b, c, cd) {
+  ctx.save();
   ctx.translate(b.x, b.y);
   const s = b.r / 10; // escala proporcional al radio
   ctx.scale(s, s);
@@ -653,6 +600,7 @@ function drawRabbit(b, c, cd) {
 
   ctx.fillStyle = 'rgba(255,180,190,0.7)';
   ctx.beginPath(); ctx.ellipse(0,2.5,2,1.5,0,0,Math.PI*2); ctx.fill(); // nariz/panza
+  ctx.restore();
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -676,7 +624,7 @@ function addParticles(x, y) {
 
 /* ════════════════════════════════════════════════════════════════
    collidePair(a, b)
-   Detecta y resuelve la colisión física entre dos pelotas.
+   Detecta y resuelve la colisión física entre dos conejos.
    Usa resolución de impulso: calcula la velocidad relativa en
    la dirección normal al contacto y redistribuye el momentum.
    Retorna true si hubo colisión efectiva.
@@ -699,12 +647,12 @@ function collidePair(a, b) {
   a.vx -= imp*nx; a.vy -= imp*ny;
   b.vx += imp*nx; b.vy += imp*ny;
 
-  // Separar las pelotas para evitar solapamiento visual
+  // Separar los conejos para evitar solapamiento visual
   const ov = (minD - dist)/2 + 0.5;
   a.x -= nx*ov; a.y -= ny*ov;
   b.x += nx*ov; b.y += ny*ov;
 
-  // Activar efecto visual de deformación en ambas pelotas
+  // Activar efecto visual de deformación en ambos conejos
   a.wobble += 0.8; b.wobble += 0.8;
   return true;
 }
@@ -712,21 +660,21 @@ function collidePair(a, b) {
 /* ════════════════════════════════════════════════════════════════
    step()
    Avanza un frame de la simulación:
-   1. Aplica gravedad y mueve todas las pelotas
+   1. Aplica gravedad y mueve todos los conejos
    2. Comprueba colisiones con las paredes del cerco
-   3. Comprueba colisiones entre pares de pelotas
-   4. Si colisionan una azul y una rosa (y no hay cooldown),
-      genera una nueva pelota desde el interior del cerco
+   3. Comprueba colisiones entre pares de conejos
+   4. Si colisionan un macho y una hembra (y no hay cooldown),
+      genera un nuevo conejo desde el interior del cerco
    ════════════════════════════════════════════════════════════════ */
 function step() {
   const arena = getArena();
 
-  // ── Paso 1: Física de cada pelota individualmente ──
+  // ── Paso 1: Física de cada conejo individualmente ──
   balls.forEach(b => {
-    b.vy += gravity;       // gravedad (aceleración hacia abajo)
-    b.vx *= 0.9995;        // rozamiento del aire (levísima pérdida)
+    b.vy += gravity;        // gravedad (aceleración hacia abajo)
+    b.vx *= 0.9995;         // rozamiento del aire (levísima pérdida)
     b.vy *= 0.9995;
-    b.x  += b.vx;          // integrar posición
+    b.x  += b.vx;           // integrar posición
     b.y  += b.vy;
     b.wobble  += b.wobbleV; // avanzar deformación
     b.wobble  *= 0.92;      // amortiguación del wobble
@@ -740,14 +688,14 @@ function step() {
     constrainBall(b, arena);
   });
 
-  // ── Paso 2: Colisiones entre pares de pelotas ──
+  // ── Paso 2: Colisiones entre pares de conejos ──
   for (let i = 0; i < balls.length; i++) {
     for (let j = i+1; j < balls.length; j++) {
       const a  = balls[i];
       const bv = balls[j];
       const hit = collidePair(a, bv);
 
-      // Si colisionaron una azul y una rosa, y el límite no está alcanzado...
+      // Si colisionaron un macho y una hembra, y el límite no está alcanzado...
       if (hit && a.type !== bv.type && !cooldownActive && balls.length < limit) {
         // Clave única para este par, con cooldown de 1.2 s entre generaciones
         const key = `${Math.min(i,j)}-${Math.max(i,j)}`;
@@ -756,7 +704,7 @@ function step() {
           collisionCooldown.set(key, now);
           generation++; totalCreated++;
 
-          // Nueva pelota de color aleatorio, posición central, velocidad aleatoria
+          // Nueva cría de género aleatorio, posición interior, velocidad aleatoria
           const newType = Math.random() < 0.5 ? 'blue' : 'pink';
           const sa = Math.random() * Math.PI*2;
           const sp = speed * (0.7 + Math.random()*0.6);
@@ -779,7 +727,7 @@ function step() {
 /* ════════════════════════════════════════════════════════════════
    drawCountdown(elapsed, total)
    Dibuja en el canvas de superposición (overlay) el anillo
-   de cuenta regresiva que aparece al alcanzar el límite de pelotas.
+   de cuenta regresiva que aparece al alcanzar el límite de conejos.
    El arco dorado se reduce conforme avanza el tiempo.
    ════════════════════════════════════════════════════════════════ */
 function drawCountdown(elapsed, total) {
@@ -817,10 +765,10 @@ function drawCountdown(elapsed, total) {
    Dibuja un frame completo de la simulación en el canvas:
    1. Limpia y rellena el fondo dentro del cerco
    2. Dibuja el borde del cerco
-   3. Dibuja las estelas de movimiento de cada pelota
+   3. Dibuja las estelas de movimiento de cada conejo
    4. Dibuja las partículas de colisión
-   5. Dibuja los destellos de nuevas pelotas
-   6. Dibuja todas las pelotas encima
+   5. Dibuja los destellos de nuevas crías
+   6. Dibuja todos los conejos encima
    ════════════════════════════════════════════════════════════════ */
 function render() {
   const CX = getCX(), CY = getCY();
@@ -870,7 +818,7 @@ function render() {
     p.x += p.vx; p.y += p.vy; p.life -= 0.06; return p.life > 0;
   });
 
-  // ── Destellos de nueva pelota generada ──
+  // ── Destellos de nueva cría generada ──
   flashList.forEach(f => {
     ctx.save();
     ctx.globalAlpha = f.life * 0.6;
@@ -880,8 +828,12 @@ function render() {
     ctx.restore();
   });
 
-  // ── Pelotas / conejos ──
-  balls.forEach(drawBall);
+  // ── Conejos ──
+  balls.forEach(b => {
+    const c  = b.type==='blue' ? BLUE   : PINK;
+    const cd = b.type==='blue' ? BLUE_D : PINK_D;
+    drawRabbit(b, c, cd);
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -889,7 +841,7 @@ function render() {
    Bucle principal de animación. Se llama a sí mismo con
    requestAnimationFrame ~60 veces por segundo. En cada frame:
    - Si no está pausado: avanza la física (step) y dibuja (render)
-   - Verifica si se alcanzó el límite de pelotas
+   - Verifica si se alcanzó el límite de conejos
    - Gestiona el período de cooldown post-límite
    - Se detiene automáticamente al terminar el cooldown
    ════════════════════════════════════════════════════════════════ */
@@ -903,11 +855,11 @@ function loop() {
       cooldownActive = true;
       limitReachedAt = performance.now();
       document.getElementById('msg').innerHTML =
-        `<strong>¡Límite alcanzado!</strong> ${totalCreated} pelotas — continuando ${cooldownSecs}s más...`;
+        `<strong>¡Límite alcanzado!</strong> ${totalCreated} conejos — la simulación continúa ${cooldownSecs}s más...`;
     } else {
       // Sin período de gracia: detener inmediatamente
       document.getElementById('msg').innerHTML =
-        `<strong>¡Límite alcanzado!</strong> ${totalCreated} pelotas en ${generation} colisiones.`;
+        `<strong>¡Límite alcanzado!</strong> ${totalCreated} conejos en ${generation} generaciones.`;
       octx.clearRect(0,0,overlay.width,overlay.height);
       running = false; render(); return;
     }
@@ -920,7 +872,7 @@ function loop() {
     if (elapsed >= total) {
       // Cooldown terminado: detener la simulación
       document.getElementById('msg').innerHTML =
-        `<strong>¡Simulación completa!</strong> ${totalCreated} pelotas, ${generation} colisiones — crecimiento exponencial en acción.`;
+        `<strong>¡Simulación completa!</strong> ${totalCreated} conejos en ${generation} generaciones — así funciona el crecimiento exponencial.`;
       octx.clearRect(0,0,overlay.width,overlay.height);
       running = false; return;
     }
@@ -939,7 +891,7 @@ function loop() {
 document.getElementById('btn-start').addEventListener('click', () => {
   if (running) return;
   spawnInitial(); running = true; paused = false;
-  document.getElementById('msg').textContent = 'Las colisiones rosa × azul generan nuevos conejos.';
+  document.getElementById('msg').textContent = 'Cada colisión entre un macho y una hembra genera una nueva cría.';
   document.getElementById('btn-pause').textContent = '⏸ Pausar';
   animId = requestAnimationFrame(loop);
 });
@@ -964,13 +916,6 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   updateStats();
 });
 
-/* Botón Modo Conejos/Pelotas: alterna el modo visual */
-document.getElementById('btn-theme').addEventListener('click', () => {
-  useRabbit = !useRabbit;
-  document.getElementById('btn-theme').textContent = useRabbit ? '🎱 Modo Pelotas' : '🐰 Modo Conejos';
-  updateStats();
-});
-
 /* Botones de forma del cerco: cambian arenaShape y el border-radius visual */
 document.getElementById('shape-btns').addEventListener('click', e => {
   const btn = e.target.closest('[data-shape]'); if (!btn) return;
@@ -985,10 +930,10 @@ document.getElementById('shape-btns').addEventListener('click', e => {
 /* ════════════════════════════════════════════════════════════════
    bindSlider(id, valId, setter, fmt)
    Conecta un slider HTML con una variable de configuración.
-   - id: ID del elemento <input type="range">
+   - id:    ID del elemento <input type="range">
    - valId: ID del <span> donde se muestra el valor actual
    - setter: función que recibe el nuevo valor y lo aplica
-   - fmt: decimales a mostrar (0 = entero)
+   - fmt:   decimales a mostrar (0 = entero, 2 = dos decimales, etc.)
    ════════════════════════════════════════════════════════════════ */
 function bindSlider(id, valId, setter, fmt) {
   document.getElementById(id).addEventListener('input', function() {
@@ -998,19 +943,19 @@ function bindSlider(id, valId, setter, fmt) {
   });
 }
 
-/* Registrar todos los sliders */
-bindSlider('r-limit',    'v-limit',    v => limit = v,                          0);
-bindSlider('r-cooldown', 'v-cooldown', v => cooldownSecs = v,                   0);
+/* Registrar todos los sliders con sus valores y funciones de actualización */
+bindSlider('r-limit',    'v-limit',    v => limit = v,                                    0);
+bindSlider('r-cooldown', 'v-cooldown', v => cooldownSecs = v,                             0);
 bindSlider('r-bsize',    'v-bsize',    v => { ballSize = v; balls.forEach(b => b.r = v); }, 0);
-bindSlider('r-grav',     'v-grav',     v => gravity = v,                         2);
-bindSlider('r-speed',    'v-speed',    v => speed = v,                           1);
-bindSlider('r-elast',    'v-elast',    v => elasticity = v,                      2);
-bindSlider('r-arena',    'v-arena',    v => arenaSize = v,                       0);
+bindSlider('r-grav',     'v-grav',     v => gravity = v,                                   2);
+bindSlider('r-speed',    'v-speed',    v => speed = v,                                     1);
+bindSlider('r-elast',    'v-elast',    v => elasticity = v,                                2);
+bindSlider('r-arena',    'v-arena',    v => arenaSize = v,                                 0);
 
 /* ════════════════════════════════════════════════════════════════
-   INICIALIZACIÓN
-   Ajusta border-radius del canvas, actualiza labels y dibuja
-   el cerco vacío inicial.
+   INICIALIZACIÓN FINAL
+   Ajusta el border-radius del canvas para la forma circular inicial,
+   actualiza los contadores en cero y dibuja el cerco vacío.
    ════════════════════════════════════════════════════════════════ */
 canvas.style.borderRadius  = '50%';
 overlay.style.borderRadius = '50%';
