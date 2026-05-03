@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Crecimiento Exponencial</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── Variables de diseño ── */
+  :root {
+    --blue: #3A8FD8;  --blue-dark: #185FA5;  --blue-light: #aad4f5;
+    --pink: #D45370;  --pink-dark: #993556;   --pink-light: #f5aac0;
+    --bg: #0b0d12;
+    --surface: #13161f;
+    --surface2: #1a1e2a;
+    --surface3: #222636;
+    --border: rgba(255,255,255,0.07);
+    --text: #eaecf4;
+    --text-muted: #6b7490;
+    --accent: #f0c060;
+    --green: #4caf82;
+    --r: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  /* ── Layout raíz ── */
+  html, body { height: 100%; overflow: hidden; background: var(--bg); }
+  body {
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    max-width: 520px;      /* centrado en pantallas anchas */
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ════════════════════════════════
+     HEADER
+     ════════════════════════════════ */
+  .header {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 10px 14px 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 10;
+  }
+  .header-logo {
+    height: 38px;
+    width: auto;
+    opacity: 0.92;
+    flex-shrink: 0;
+  }
+  .header-text { flex: 1; min-width: 0; }
+  .header-text h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.7rem, 3.5vw, 1rem);
+    font-weight: 700;
+    background: linear-gradient(110deg, var(--blue), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+  }
+  .header-text .credits {
+    font-size: clamp(0.55rem, 2.2vw, 0.68rem);
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+  .header-text .credits strong {
+    color: rgba(240,192,96,0.8);
+    font-weight: 700;
+  }
+
+  /* ════════════════════════════════
+     ESTADÍSTICAS — franja siempre visible
+     ════════════════════════════════ */
+  .stats-bar {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-bottom: 0.5px solid var(--border);
+  }
+  .stat {
+    background: var(--surface3);
+    border-radius: 8px;
+    padding: 6px 4px;
+    text-align: center;
+  }
+  .stat-val { font-size: 1.25rem; font-weight: 800; line-height: 1; }
+  .stat-val.blue { color: var(--blue); }
+  .stat-val.pink { color: var(--pink); }
+  .stat-val.gen  { color: var(--accent); }
+  .stat-lbl { font-size: 9px; color: var(--text-muted); margin-top: 2px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* ════════════════════════════════
+     CANVAS CENTRAL
+     ════════════════════════════════ */
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 8px;
+    gap: 6px;
+    position: relative;
+  }
+  .canvas-wrap { position: relative; flex-shrink: 0; }
+  canvas { display: block; touch-action: none; }
+  #overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+  /* Mensaje de estado flotante sobre el canvas */
+  #msg {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    background: rgba(11,13,18,0.75);
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+  }
+  #msg strong { color: var(--accent); }
+
+  /* ════════════════════════════════
+     BARRA DE ACCIONES (siempre visible, pegada abajo)
+     ════════════════════════════════ */
+  .action-bar {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-top: 0.5px solid var(--border);
+    padding: 10px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .btn {
+    flex: 1;
+    padding: 12px 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 10px;
+    border: 0.5px solid var(--border);
+    background: var(--surface3);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.02em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    line-height: 1;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn .icon { font-size: 18px; }
+  .btn.primary { background: var(--blue-dark); border-color: var(--blue); color: #fff; }
+  .btn.primary:active { background: var(--blue); }
+  .btn.danger  { background: #1e0f18; border-color: var(--pink-dark); color: var(--pink); }
+  .btn.danger:active  { background: #2e1525; }
+  /* Botón de configuración con indicador activo */
+  .btn.settings { position: relative; }
+  .btn.settings.open { border-color: var(--accent); color: var(--accent); background: rgba(240,192,96,0.08); }
+
+  /* ════════════════════════════════
+     PANEL DE CONFIGURACIÓN — drawer desde abajo
+     ════════════════════════════════ */
+  .settings-drawer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 0.5px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 0 16px 16px;
+    z-index: 20;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+    max-height: 75vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .settings-drawer.open { transform: translateY(0); }
+  .settings-drawer::-webkit-scrollbar { display: none; }
+
+  /* Mango del drawer */
+  .drawer-handle {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0 8px;
+    cursor: pointer;
+  }
+  .drawer-handle::after {
+    content: '';
+    width: 36px;
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    display: block;
+  }
+  .drawer-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  /* Sección de forma del cerco */
+  .section-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    margin-bottom: 8px;
+    margin-top: 14px;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* Botones de forma */
+  .shape-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .shape-btn {
+    padding: 8px 4px;
+    font-size: 18px;
+    border-radius: 8px;
+    border: 0.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .shape-btn.active { border-color: var(--blue); background: rgba(58,143,216,0.15); }
+
+  /* Sliders */
+  .ctrl-row { margin-bottom: 12px; }
+  .ctrl-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .ctrl-label span { color: var(--text); font-weight: 700; }
+  input[type=range] {
+    width: 100%;
+    height: 5px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--surface3);
+    border-radius: 3px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: 3px solid var(--bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: 3px solid var(--bg);
+  }
+
+  /* Leyenda de colores dentro del drawer */
+  .legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 4px;
+    margin-bottom: 14px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  /* Overlay oscuro detrás del drawer */
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 15;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .backdrop.visible { opacity: 1; pointer-events: all; }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="header">
+  <!--
+    Logo CCHN_logo.png — debe estar en la misma carpeta.
+    Original 582×618 px, escalado a 38 px de alto.
+  -->
+  <img src="CCHN_logo.png" alt="Logo CCHN" class="header-logo">
+  <div class="header-text">
+    <h1>Crecimiento Exponencial</h1>
+    <div class="credits">
+      <strong>Una idea de:</strong> Jazmín Pérez Pérez y Cecilia Villegas Ortega<br>
+      <strong>Profesor:</strong> Víctor Hugo Zepeda Aguillón
+    </div>
+  </div>
+</div>
+
+<!-- ══ ESTADÍSTICAS ══ -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val blue" id="s-blue">1</div><div class="stat-lbl">Machos</div></div>
+  <div class="stat"><div class="stat-val pink" id="s-pink">1</div><div class="stat-lbl">Hembras</div></div>
+  <div class="stat"><div class="stat-val"      id="s-total">2</div><div class="stat-lbl">Total</div></div>
+  <div class="stat"><div class="stat-val gen"  id="s-gen">0</div><div class="stat-lbl">Generación</div></div>
+</div>
+
+<!-- ══ CANVAS ══ -->
+<div class="canvas-area" id="canvas-area">
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="c"></canvas>
+    <canvas id="overlay"></canvas>
+  </div>
+  <div id="msg">Presiona <strong>Iniciar</strong> para comenzar.</div>
+</div>
+
+<!-- ══ BARRA DE ACCIONES (fija abajo) ══ -->
+<div class="action-bar">
+  <button class="btn primary" id="btn-start">
+    <span class="icon">▶</span>Iniciar
+  </button>
+  <button class="btn" id="btn-pause">
+    <span class="icon">⏸</span>Pausar
+  </button>
+  <button class="btn danger" id="btn-reset">
+    <span class="icon">↺</span>Reiniciar
+  </button>
+  <button class="btn settings" id="btn-settings">
+    <span class="icon">⚙️</span>Config
+  </button>
+</div>
+
+<!-- ══ BACKDROP ══ -->
+<div class="backdrop" id="backdrop"></div>
+
+<!-- ══ DRAWER DE CONFIGURACIÓN ══ -->
+<div class="settings-drawer" id="drawer">
+  <div class="drawer-handle" id="drawer-handle"></div>
+  <div class="drawer-title">⚙️ Configuración</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:var(--blue)"></div>Macho</div>
+    <div class="legend-item"><div class="dot" style="background:var(--pink)"></div>Hembra</div>
+  </div>
+
+  <div class="section-label">Forma del cerco</div>
+  <div class="shape-row" id="shape-btns">
+    <div class="shape-btn active" data-shape="circle"   title="Círculo">⬤</div>
+    <div class="shape-btn"        data-shape="square"   title="Cuadrado">■</div>
+    <div class="shape-btn"        data-shape="triangle" title="Triángulo">▲</div>
+    <div class="shape-btn"        data-shape="hexagon"  title="Hexágono">⬡</div>
+  </div>
+
+  <div class="section-label">Parámetros</div>
+
+  <div class="ctrl-row">
+    <div class="ctrl-label">Tamaño del cerco <span id="v-arena">180</span></div>
+    <input type="range" id="r-arena" min="80" max="220" value="180" step="5">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">Límite de conejos <span id="v-limit">1000</span></div>
+    <input type="range" id="r-limit" min="10" max="1500" value="1000" step="1">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">Segundos extra <span id="v-cooldown">20</span></div>
+    <input type="range" id="r-cooldown" min="0" max="30" value="20" step="1">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">Tamaño de conejos <span id="v-bsize">7</span></div>
+    <input type="range" id="r-bsize" min="4" max="18" value="7" step="1">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">Gravedad <span id="v-grav">0.02</span></div>
+    <input type="range" id="r-grav" min="0" max="0.5" value="0.02" step="0.01">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">Velocidad inicial <span id="v-speed">3.0</span></div>
+    <input type="range" id="r-speed" min="1" max="8" value="3" step="0.5">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">Elasticidad <span id="v-elast">0.95</span></div>
+    <input type="range" id="r-elast" min="0.5" max="0.98" value="0.95" step="0.01">
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   CANVAS — tamaño dinámico basado en el espacio disponible
+   ════════════════════════════════════════════════════════════════ */
+const canvas  = document.getElementById('c');
+const ctx     = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const octx    = overlay.getContext('2d');
+
+/* Calcula el tamaño cuadrado máximo disponible para el canvas */
+function getCanvasSize() {
+  const area   = document.getElementById('canvas-area');
+  const pad    = 16;
+  const avW    = area.clientWidth  - pad;
+  const avH    = area.clientHeight - 40; // espacio para msg
+  return Math.max(160, Math.min(avW, avH));
+}
+
+function resizeCanvases() {
+  const s = getCanvasSize();
+  canvas.width  = canvas.height  = s;
+  overlay.width = overlay.height = s;
+}
+resizeCanvases();
+
+const getCX = () => canvas.width  / 2;
+const getCY = () => canvas.height / 2;
+
+/* ════════════════════════════════════════════════════════════════
+   ESTADO Y CONFIGURACIÓN
+   ════════════════════════════════════════════════════════════════ */
+let balls = [], running = false, paused = false, animId = null;
+let generation = 0, totalCreated = 0;
+let collisionCooldown = new Map();
+let flashList = [], collisionParticles = [];
+
+let limit = 1000, gravity = 0.02, speed = 3.0, elasticity = 0.95;
+let ballSize = 7, arenaSize = 180, arenaShape = 'circle';
+let cooldownSecs = 20, limitReachedAt = null, cooldownActive = false;
+
+const BLUE = '#3A8FD8', BLUE_D = '#185FA5', BLUE_L = '#aad4f5';
+const PINK = '#D45370', PINK_D = '#993556', PINK_L = '#f5aac0';
+
+/* ════════════════════════════════════════════════════════════════
+   GEOMETRÍA DEL CERCO
+   ════════════════════════════════════════════════════════════════ */
+function getArena() {
+  const s = arenaSize, CX = getCX(), CY = getCY();
+  if (arenaShape === 'square')   return { type:'square', x:CX-s, y:CY-s, w:s*2, h:s*2 };
+  if (arenaShape === 'triangle') {
+    const pts = [];
+    for (let i=0;i<3;i++) { const a=-Math.PI/2+i*Math.PI*2/3; pts.push({x:CX+Math.cos(a)*s*1.05,y:CY+Math.sin(a)*s*1.05}); }
+    return { type:'polygon', pts };
+  }
+  if (arenaShape === 'hexagon') {
+    const pts = [];
+    for (let i=0;i<6;i++) { const a=i*Math.PI/3; pts.push({x:CX+Math.cos(a)*s,y:CY+Math.sin(a)*s}); }
+    return { type:'polygon', pts };
+  }
+  return { type:'circle', r:s };
+}
+
+function tracePath(c, arena) {
+  const CX = getCX(), CY = getCY();
+  if (arena.type==='circle') { c.beginPath(); c.arc(CX,CY,arena.r,0,Math.PI*2); }
+  else if (arena.type==='square') { c.beginPath(); c.rect(arena.x,arena.y,arena.w,arena.h); }
+  else { c.beginPath(); c.moveTo(arena.pts[0].x,arena.pts[0].y); arena.pts.forEach(p=>c.lineTo(p.x,p.y)); c.closePath(); }
+}
+
+function constrainBall(b, arena) {
+  const CX = getCX(), CY = getCY();
+  if (arena.type==='circle') {
+    const dx=b.x-CX,dy=b.y-CY,dist=Math.sqrt(dx*dx+dy*dy),maxD=arena.r-b.r;
+    if (dist>maxD) {
+      const nx=dx/dist,ny=dy/dist;
+      b.x=CX+nx*maxD; b.y=CY+ny*maxD;
+      const dot=b.vx*nx+b.vy*ny;
+      b.vx-=(1+elasticity)*dot*nx; b.vy-=(1+elasticity)*dot*ny;
+      b.vx*=0.98; b.vy*=0.98; b.wobbleV=-(0.2+Math.random()*0.3);
+    }
+  } else if (arena.type==='square') {
+    const {x,y,w,h}=arena,r=b.r;
+    if(b.x-r<x){b.x=x+r;b.vx=Math.abs(b.vx)*elasticity;b.wobbleV=-0.3;}
+    if(b.x+r>x+w){b.x=x+w-r;b.vx=-Math.abs(b.vx)*elasticity;b.wobbleV=-0.3;}
+    if(b.y-r<y){b.y=y+r;b.vy=Math.abs(b.vy)*elasticity;b.wobbleV=-0.3;}
+    if(b.y+r>y+h){b.y=y+h-r;b.vy=-Math.abs(b.vy)*elasticity;b.wobbleV=-0.3;}
+  } else {
+    arena.pts.forEach((a,i)=>{
+      const bv=arena.pts[(i+1)%arena.pts.length];
+      const ex=bv.x-a.x,ey=bv.y-a.y,len=Math.sqrt(ex*ex+ey*ey);
+      const nx=-ey/len,ny=ex/len;
+      const dist=(b.x-a.x)*nx+(b.y-a.y)*ny;
+      if(dist<b.r){const pen=b.r-dist;b.x+=nx*pen;b.y+=ny*pen;const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx-=(1+elasticity)*dot*nx;b.vy-=(1+elasticity)*dot*ny;}b.vx*=0.98;b.vy*=0.98;b.wobbleV=-0.3;}
+    });
+  }
+}
+
+function randomInside(arena) {
+  const CX=getCX(),CY=getCY();
+  for(let t=0;t<60;t++){
+    let x,y;
+    if(arena.type==='circle'){const r=(arena.r-ballSize*2)*Math.sqrt(Math.random()),a=Math.random()*Math.PI*2;x=CX+r*Math.cos(a);y=CY+r*Math.sin(a);}
+    else if(arena.type==='square'){x=arena.x+ballSize*2+Math.random()*(arena.w-ballSize*4);y=arena.y+ballSize*2+Math.random()*(arena.h-ballSize*4);}
+    else{const f=0.35*Math.sqrt(Math.random()),a=Math.random()*Math.PI*2;x=CX+Math.cos(a)*arenaSize*f;y=CY+Math.sin(a)*arenaSize*f;}
+    return {x,y};
+  }
+  return {x:CX,y:CY};
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DISEÑO D — CÁPSULA OJOS GRANDES
+   Cuerpo cápsula alto (rect redondeado), orejas redondeadas con
+   interior suave, ojos grandes kawaii con doble brillo, bigotes
+   finos, nariz cápsula flat y patitas redondeadas.
+   ════════════════════════════════════════════════════════════════ */
+function drawRabbitD(b, c, cd, cl) {
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  const s = b.r / 10;
+  ctx.scale(s, s);
+
+  // ── Orejas redondeadas (finas y altas) ──
+  roundRect(ctx, -17, -36, 11, 24, 5.5); ctx.fillStyle = cd; ctx.fill();
+  roundRect(ctx,   6, -36, 11, 24, 5.5); ctx.fillStyle = cd; ctx.fill();
+  roundRect(ctx, -15, -34,  7, 16, 3.5); ctx.fillStyle = cl; ctx.fill();
+  roundRect(ctx,   8, -34,  7, 16, 3.5); ctx.fillStyle = cl; ctx.fill();
+
+  // ── Cuerpo cápsula alto ──
+  roundRect(ctx, -19, -14, 38, 44, 19); ctx.fillStyle = c; ctx.fill();
+
+  // ── Mejillas suaves ──
+  ctx.globalAlpha = 0.38;
+  ctx.fillStyle = cl;
+  ctx.beginPath(); ctx.ellipse(-16, 2, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 16, 2, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // ── Ojos grandes kawaii ──
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.ellipse(-8, -4, 6.5, 6.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 8, -4, 6.5, 6.5, 0, 0, Math.PI*2); ctx.fill();
+  // Pupila
+  ctx.fillStyle = cd;
+  ctx.beginPath(); ctx.ellipse(-7, -4, 4.5, 4.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 9, -4, 4.5, 4.5, 0, 0, Math.PI*2); ctx.fill();
+  // Brillo grande
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.ellipse(-9.5, -6, 2, 2, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 7.5, -6, 2, 2, 0, 0, Math.PI*2); ctx.fill();
+  // Brillo pequeño secundario
+  ctx.beginPath(); ctx.ellipse(-5.5, -2, 1, 1, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(11,   -2, 1, 1, 0, 0, Math.PI*2); ctx.fill();
+
+  // ── Nariz cápsula flat ──
+  roundRect(ctx, -4.5, 3, 9, 6, 3); ctx.fillStyle = cl; ctx.fill();
+
+  // ── Bigotes finos ──
+  ctx.strokeStyle = cl; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-19, 4); ctx.lineTo(-8, 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-19, 7); ctx.lineTo(-8, 6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo( 8, 4); ctx.lineTo(19, 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo( 8, 6); ctx.lineTo(19, 7); ctx.stroke();
+
+  // ── Patitas redondeadas ──
+  roundRect(ctx, -18, 26, 13, 6, 3); ctx.fillStyle = cd; ctx.fill();
+  roundRect(ctx,   5, 26, 13, 6, 3); ctx.fillStyle = cd; ctx.fill();
+
+  // ── Colita ──
+  ctx.fillStyle = cl;
+  ctx.beginPath(); ctx.ellipse(20, 16, 5, 5, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+/* Helper: rectángulo redondeado compatible con contextos que no tienen roundRect nativo */
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x+r, y);
+  c.lineTo(x+w-r, y);
+  c.quadraticCurveTo(x+w, y, x+w, y+r);
+  c.lineTo(x+w, y+h-r);
+  c.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  c.lineTo(x+r, y+h);
+  c.quadraticCurveTo(x, y+h, x, y+h-r);
+  c.lineTo(x, y+r);
+  c.quadraticCurveTo(x, y, x+r, y);
+  c.closePath();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FÍSICA
+   ════════════════════════════════════════════════════════════════ */
+function makeBall(x,y,type,vx,vy) {
+  return {x,y,vx,vy,r:ballSize,type,trail:[],age:0,wobble:0,wobbleV:0};
+}
+
+function spawnInitial() {
+  const CX=getCX(),CY=getCY();
+  const a1=Math.random()*Math.PI*2, a2=a1+Math.PI+(Math.random()-0.5)*0.8, d=arenaSize*0.35;
+  balls=[
+    makeBall(CX+Math.cos(a1)*d,CY+Math.sin(a1)*d,'blue',Math.cos(a1+Math.PI/2)*speed*(0.8+Math.random()*0.4),Math.sin(a1+Math.PI/2)*speed*(0.8+Math.random()*0.4)),
+    makeBall(CX+Math.cos(a2)*d,CY+Math.sin(a2)*d,'pink',Math.cos(a2+Math.PI/2)*speed*(0.8+Math.random()*0.4),Math.sin(a2+Math.PI/2)*speed*(0.8+Math.random()*0.4))
+  ];
+  generation=0; totalCreated=2; limitReachedAt=null; cooldownActive=false;
+  collisionCooldown.clear(); collisionParticles=[]; flashList=[];
+  updateStats();
+}
+
+function updateStats() {
+  let b=0,p=0; balls.forEach(bl=>bl.type==='blue'?b++:p++);
+  document.getElementById('s-blue').textContent=b;
+  document.getElementById('s-pink').textContent=p;
+  document.getElementById('s-total').textContent=balls.length;
+  document.getElementById('s-gen').textContent=generation;
+}
+
+function addParticles(x,y) {
+  for(let i=0;i<6;i++){
+    const a=Math.random()*Math.PI*2,sp=1+Math.random()*2.5;
+    collisionParticles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,c:Math.random()>0.5?BLUE:PINK});
+  }
+}
+
+function collidePair(a,b) {
+  const dx=b.x-a.x,dy=b.y-a.y,dist=Math.sqrt(dx*dx+dy*dy);
+  if(!dist)return false;
+  const minD=a.r+b.r; if(dist>minD)return false;
+  const nx=dx/dist,ny=dy/dist,dvx=a.vx-b.vx,dvy=a.vy-b.vy,dot=dvx*nx+dvy*ny;
+  if(dot<=0)return false;
+  const imp=dot*elasticity;
+  a.vx-=imp*nx;a.vy-=imp*ny;b.vx+=imp*nx;b.vy+=imp*ny;
+  const ov=(minD-dist)/2+0.5;
+  a.x-=nx*ov;a.y-=ny*ov;b.x+=nx*ov;b.y+=ny*ov;
+  a.wobble+=0.8;b.wobble+=0.8;
+  return true;
+}
+
+function step() {
+  const arena=getArena();
+  balls.forEach(b=>{
+    b.vy+=gravity; b.vx*=0.9995; b.vy*=0.9995;
+    b.x+=b.vx; b.y+=b.vy;
+    b.wobble+=b.wobbleV; b.wobble*=0.92; b.age++;
+    b.trail.push({x:b.x,y:b.y}); if(b.trail.length>10)b.trail.shift();
+    constrainBall(b,arena);
+  });
+  for(let i=0;i<balls.length;i++){
+    for(let j=i+1;j<balls.length;j++){
+      const a=balls[i],bv=balls[j];
+      const hit=collidePair(a,bv);
+      if(hit&&a.type!==bv.type&&!cooldownActive&&balls.length<limit){
+        const key=`${Math.min(i,j)}-${Math.max(i,j)}`,now=performance.now();
+        if(!collisionCooldown.has(key)||(now-collisionCooldown.get(key))>1200){
+          collisionCooldown.set(key,now);
+          generation++;totalCreated++;
+          const newType=Math.random()<0.5?'blue':'pink';
+          const sa=Math.random()*Math.PI*2,sp=speed*(0.7+Math.random()*0.6);
+          const pos=randomInside(arena);
+          balls.push(makeBall(pos.x,pos.y,newType,Math.cos(sa)*sp,Math.sin(sa)*sp));
+          addParticles((a.x+bv.x)/2,(a.y+bv.y)/2);
+          flashList.push({x:(a.x+bv.x)/2,y:(a.y+bv.y)/2,life:1});
+          updateStats();
+        }
+      }
+    }
+  }
+  flashList=flashList.filter(f=>{f.life-=0.07;return f.life>0;});
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER
+   ════════════════════════════════════════════════════════════════ */
+function drawCountdown(elapsed,total) {
+  const CX=getCX(),CY=getCY();
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  const frac=Math.max(0,1-elapsed/total),secsLeft=Math.ceil((total-elapsed)/1000),r=arenaSize+12;
+  octx.save();
+  octx.lineWidth=4;
+  octx.strokeStyle='rgba(240,192,80,0.1)';
+  octx.beginPath();octx.arc(CX,CY,r,0,Math.PI*2);octx.stroke();
+  octx.strokeStyle=`rgba(240,192,80,${0.5+frac*0.45})`;
+  octx.lineCap='round';
+  octx.beginPath();octx.arc(CX,CY,r,-Math.PI/2,-Math.PI/2+frac*Math.PI*2);octx.stroke();
+  octx.fillStyle=`rgba(240,192,80,${0.6+frac*0.35})`;
+  octx.font=`700 18px 'Space Mono', monospace`;
+  octx.textAlign='center';octx.textBaseline='middle';
+  octx.fillText(secsLeft+'s',CX,CY-arenaSize-16);
+  octx.restore();
+}
+
+function render() {
+  const CX=getCX(),CY=getCY(),arena=getArena();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Fondo
+  ctx.save();
+  tracePath(ctx,arena);ctx.clip();
+  const grad=ctx.createRadialGradient(CX,CY,0,CX,CY,arenaSize*1.3);
+  grad.addColorStop(0,'#161d2e');grad.addColorStop(1,'#0a0c12');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.restore();
+  // Borde
+  ctx.save();tracePath(ctx,arena);ctx.strokeStyle='rgba(100,140,220,0.3)';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+  // Estelas
+  balls.forEach(b=>{
+    if(b.trail.length<2)return;
+    const col=b.type==='blue'?'58,143,216':'212,83,112';
+    ctx.beginPath();ctx.moveTo(b.trail[0].x,b.trail[0].y);
+    for(let i=1;i<b.trail.length;i++)ctx.lineTo(b.trail[i].x,b.trail[i].y);
+    ctx.strokeStyle=`rgba(${col},0.1)`;ctx.lineWidth=b.r*0.4;ctx.lineCap='round';ctx.stroke();
+  });
+  // Partículas
+  collisionParticles.forEach(p=>{ctx.globalAlpha=p.life;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,2*p.life,0,Math.PI*2);ctx.fill();});
+  ctx.globalAlpha=1;
+  collisionParticles=collisionParticles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.06;return p.life>0;});
+  // Destellos
+  flashList.forEach(f=>{ctx.save();ctx.globalAlpha=f.life*0.5;ctx.strokeStyle=`rgba(240,192,80,${f.life})`;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(f.x,f.y,18*(1-f.life)+4,0,Math.PI*2);ctx.stroke();ctx.restore();});
+  // Conejos diseño D
+  balls.forEach(b=>{
+    const c=b.type==='blue'?BLUE:PINK, cd=b.type==='blue'?BLUE_D:PINK_D, cl=b.type==='blue'?BLUE_L:PINK_L;
+    drawRabbitD(b,c,cd,cl);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LOOP PRINCIPAL
+   ════════════════════════════════════════════════════════════════ */
+function loop() {
+  if(!paused){step();render();}
+  if(balls.length>=limit&&!cooldownActive){
+    if(cooldownSecs>0){
+      cooldownActive=true;limitReachedAt=performance.now();
+      document.getElementById('msg').innerHTML=`<strong>¡Límite!</strong> ${totalCreated} conejos — continuando ${cooldownSecs}s...`;
+    } else {
+      document.getElementById('msg').innerHTML=`<strong>¡Listo!</strong> ${totalCreated} conejos, ${generation} generaciones.`;
+      octx.clearRect(0,0,overlay.width,overlay.height);running=false;render();return;
+    }
+  }
+  if(cooldownActive){
+    const elapsed=performance.now()-limitReachedAt,total=cooldownSecs*1000;
+    if(elapsed>=total){
+      document.getElementById('msg').innerHTML=`<strong>¡Completo!</strong> ${totalCreated} conejos, ${generation} generaciones.`;
+      octx.clearRect(0,0,overlay.width,overlay.height);running=false;return;
+    }
+    drawCountdown(elapsed,total);
+  }
+  animId=requestAnimationFrame(loop);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CONTROLES DE UI
+   ════════════════════════════════════════════════════════════════ */
+document.getElementById('btn-start').addEventListener('click',()=>{
+  if(running)return;
+  spawnInitial();running=true;paused=false;
+  document.getElementById('msg').innerHTML='Colisión macho × hembra = nueva cría 🐰';
+  document.getElementById('btn-pause').querySelector('.icon').textContent='⏸';
+  document.getElementById('btn-pause').childNodes[2].textContent='Pausar';
+  animId=requestAnimationFrame(loop);
+});
+
+document.getElementById('btn-pause').addEventListener('click',()=>{
+  if(!running)return;
+  paused=!paused;
+  const btn=document.getElementById('btn-pause');
+  btn.querySelector('.icon').textContent=paused?'▶':'⏸';
+  btn.childNodes[2].textContent=paused?'Reanudar':'Pausar';
+  if(!paused)animId=requestAnimationFrame(loop);
+});
+
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  cancelAnimationFrame(animId);running=false;paused=false;
+  balls=[];collisionParticles=[];flashList=[];
+  generation=0;totalCreated=0;limitReachedAt=null;cooldownActive=false;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  document.getElementById('msg').innerHTML='Presiona <strong>Iniciar</strong> para comenzar.';
+  const btn=document.getElementById('btn-pause');
+  btn.querySelector('.icon').textContent='⏸';
+  btn.childNodes[2].textContent='Pausar';
+  updateStats();
+});
+
+/* Drawer de configuración */
+const drawer   = document.getElementById('drawer');
+const backdrop = document.getElementById('backdrop');
+const btnSettings = document.getElementById('btn-settings');
+
+function openDrawer()  { drawer.classList.add('open'); backdrop.classList.add('visible'); btnSettings.classList.add('open'); }
+function closeDrawer() { drawer.classList.remove('open'); backdrop.classList.remove('visible'); btnSettings.classList.remove('open'); }
+
+btnSettings.addEventListener('click', () => drawer.classList.contains('open') ? closeDrawer() : openDrawer());
+backdrop.addEventListener('click', closeDrawer);
+document.getElementById('drawer-handle').addEventListener('click', closeDrawer);
+
+/* Swipe hacia abajo para cerrar el drawer */
+let touchStartY = 0;
+drawer.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, {passive:true});
+drawer.addEventListener('touchend',   e => { if(e.changedTouches[0].clientY - touchStartY > 60) closeDrawer(); }, {passive:true});
+
+/* Forma del cerco */
+document.getElementById('shape-btns').addEventListener('click', e=>{
+  const btn=e.target.closest('[data-shape]'); if(!btn)return;
+  document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  arenaShape=btn.dataset.shape;
+  canvas.style.borderRadius=arenaShape==='circle'?'50%':'8px';
+  overlay.style.borderRadius=canvas.style.borderRadius;
+});
+
+/* Sliders */
+function bindSlider(id,valId,setter,fmt){
+  document.getElementById(id).addEventListener('input',function(){
+    const v=parseFloat(this.value); setter(v);
+    document.getElementById(valId).textContent=fmt?v.toFixed(fmt):v;
+  });
+}
+bindSlider('r-arena',    'v-arena',    v=>arenaSize=v,                               0);
+bindSlider('r-limit',    'v-limit',    v=>limit=v,                                   0);
+bindSlider('r-cooldown', 'v-cooldown', v=>cooldownSecs=v,                            0);
+bindSlider('r-bsize',    'v-bsize',    v=>{ballSize=v;balls.forEach(b=>b.r=v);},     0);
+bindSlider('r-grav',     'v-grav',     v=>gravity=v,                                 2);
+bindSlider('r-speed',    'v-speed',    v=>speed=v,                                   1);
+bindSlider('r-elast',    'v-elast',    v=>elasticity=v,                              2);
+
+/* Redimensionar al rotar pantalla */
+window.addEventListener('resize',()=>{
+  resizeCanvases();
+  if(!running){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const arena=getArena(),CX=getCX(),CY=getCY();
+    ctx.save();tracePath(ctx,arena);ctx.clip();
+    const grad=ctx.createRadialGradient(CX,CY,0,CX,CY,arenaSize*1.3);
+    grad.addColorStop(0,'#161d2e');grad.addColorStop(1,'#0a0c12');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,canvas.width,canvas.height);ctx.restore();
+    tracePath(ctx,arena);ctx.strokeStyle='rgba(100,140,220,0.3)';ctx.lineWidth=1.5;ctx.stroke();
+  }
+});
+
+/* Inicialización */
+canvas.style.borderRadius='50%';
+overlay.style.borderRadius='50%';
+updateStats();
+</script>
+</body>
+</html>
