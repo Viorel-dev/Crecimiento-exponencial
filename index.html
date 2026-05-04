@@ -357,8 +357,8 @@ let limitReachedAt = null;    // timestamp en que se alcanzó el límite
 let cooldownActive = false;   // true durante el período de cooldown post-límite
 
 /* Colores base: azul para machos, rosa para hembras */
-const BLUE = '#3A8FD8', BLUE_D = '#185FA5';
-const PINK = '#D45370', PINK_D = '#993556';
+const BLUE = '#3A8FD8', BLUE_D = '#185FA5', BLUE_L = '#aad4f5';
+const PINK = '#D45370', PINK_D = '#993556', PINK_L = '#f5aac0';
 
 /* ════════════════════════════════════════════════════════════════
    getArena()
@@ -568,38 +568,93 @@ function updateStats() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   drawRabbit(b, c, cd)
-   Dibuja un conejo esquemático usando elipses para el cuerpo,
-   orejas, ojos y nariz. Se escala con b.r para ser proporcional.
-   - b:  objeto conejo (posición, radio)
-   - c:  color principal (azul o rosa)
-   - cd: color oscuro para detalles
+   roundRect(c, x, y, w, h, r)
+   Helper: dibuja un rectángulo redondeado compatible con todos los
+   navegadores (sin depender del método nativo roundRect).
    ════════════════════════════════════════════════════════════════ */
-function drawRabbit(b, c, cd) {
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x+r, y);
+  c.lineTo(x+w-r, y);
+  c.quadraticCurveTo(x+w, y,   x+w, y+r);
+  c.lineTo(x+w, y+h-r);
+  c.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  c.lineTo(x+r, y+h);
+  c.quadraticCurveTo(x,   y+h, x,     y+h-r);
+  c.lineTo(x, y+r);
+  c.quadraticCurveTo(x,   y,   x+r,   y);
+  c.closePath();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   drawRabbit(b, c, cd, cl)   ——  Diseño D: Cápsula ojos grandes
+   Dibuja un conejo con:
+   - Orejas redondeadas altas con interior claro
+   - Cuerpo cápsula (rectángulo de esquinas muy redondeadas)
+   - Mejillas translúcidas suaves
+   - Ojos grandes kawaii con pupila, doble brillo y reflejo secundario
+   - Nariz cápsula flat
+   - Bigotes finos a cada lado
+   - Patitas redondeadas y colita circular
+   Parámetros:
+   - b:  objeto conejo (posición b.x, b.y y radio b.r)
+   - c:  color principal del conejo
+   - cd: color oscuro (orejas externas, patitas, pupila)
+   - cl: color claro (interior orejas, mejillas, nariz, bigotes, colita)
+   ════════════════════════════════════════════════════════════════ */
+function drawRabbit(b, c, cd, cl) {
   ctx.save();
   ctx.translate(b.x, b.y);
-  const s = b.r / 10; // escala proporcional al radio
+  const s = b.r / 10; // escala proporcional al radio de colisión
   ctx.scale(s, s);
 
-  ctx.fillStyle = c;
-  ctx.beginPath(); ctx.ellipse(0,   2, 7, 9, 0, 0, Math.PI*2); ctx.fill(); // cuerpo
-  ctx.beginPath(); ctx.ellipse(-4, -7, 2, 6, -.4, 0, Math.PI*2); ctx.fill(); // oreja izq
-  ctx.beginPath(); ctx.ellipse( 4, -7, 2, 6,  .4, 0, Math.PI*2); ctx.fill(); // oreja der
+  // ── Orejas: exterior oscuro + interior claro ──
+  roundRect(ctx, -17, -36, 11, 24, 5.5); ctx.fillStyle = cd; ctx.fill();
+  roundRect(ctx,   6, -36, 11, 24, 5.5); ctx.fillStyle = cd; ctx.fill();
+  roundRect(ctx, -15, -34,  7, 16, 3.5); ctx.fillStyle = cl; ctx.fill();
+  roundRect(ctx,   8, -34,  7, 16, 3.5); ctx.fillStyle = cl; ctx.fill();
 
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.beginPath(); ctx.ellipse(-3,-6,1,4,-.3,0,Math.PI*2); ctx.fill(); // interior oreja izq
-  ctx.beginPath(); ctx.ellipse( 3,-6,1,4, .3,0,Math.PI*2); ctx.fill(); // interior oreja der
+  // ── Cuerpo cápsula alto ──
+  roundRect(ctx, -19, -14, 38, 44, 19); ctx.fillStyle = c; ctx.fill();
 
-  ctx.fillStyle = cd;
-  ctx.beginPath(); ctx.ellipse(-2.5,-1,1.5,1.5,0,0,Math.PI*2); ctx.fill(); // ojo izq
-  ctx.beginPath(); ctx.ellipse( 2.5,-1,1.5,1.5,0,0,Math.PI*2); ctx.fill(); // ojo der
+  // ── Mejillas translúcidas ──
+  ctx.globalAlpha = 0.38;
+  ctx.fillStyle = cl;
+  ctx.beginPath(); ctx.ellipse(-16, 2, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 16, 2, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.ellipse(-2.5,-1,0.7,0.7,0,0,Math.PI*2); ctx.fill(); // reflejo ojo izq
-  ctx.beginPath(); ctx.ellipse( 2.5,-1,0.7,0.7,0,0,Math.PI*2); ctx.fill(); // reflejo ojo der
+  // ── Ojos grandes: blanco + pupila + brillo grande + brillo secundario ──
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.ellipse(-8, -4, 6.5, 6.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 8, -4, 6.5, 6.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = cd; // pupila con color oscuro del conejo
+  ctx.beginPath(); ctx.ellipse(-7, -4, 4.5, 4.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 9, -4, 4.5, 4.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.ellipse(-9.5, -6,   2,   2, 0, 0, Math.PI*2); ctx.fill(); // brillo grande izq
+  ctx.beginPath(); ctx.ellipse( 7.5, -6,   2,   2, 0, 0, Math.PI*2); ctx.fill(); // brillo grande der
+  ctx.beginPath(); ctx.ellipse(-5.5, -2, 1.0, 1.0, 0, 0, Math.PI*2); ctx.fill(); // brillo pequeño izq
+  ctx.beginPath(); ctx.ellipse(11.0, -2, 1.0, 1.0, 0, 0, Math.PI*2); ctx.fill(); // brillo pequeño der
 
-  ctx.fillStyle = 'rgba(255,180,190,0.7)';
-  ctx.beginPath(); ctx.ellipse(0,2.5,2,1.5,0,0,Math.PI*2); ctx.fill(); // nariz/panza
+  // ── Nariz cápsula flat ──
+  roundRect(ctx, -4.5, 3, 9, 6, 3); ctx.fillStyle = cl; ctx.fill();
+
+  // ── Bigotes finos ──
+  ctx.strokeStyle = cl; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-19, 4); ctx.lineTo(-8, 4); ctx.stroke(); // bigote sup izq
+  ctx.beginPath(); ctx.moveTo(-19, 7); ctx.lineTo(-8, 6); ctx.stroke(); // bigote inf izq
+  ctx.beginPath(); ctx.moveTo(  8, 4); ctx.lineTo(19, 4); ctx.stroke(); // bigote sup der
+  ctx.beginPath(); ctx.moveTo(  8, 6); ctx.lineTo(19, 7); ctx.stroke(); // bigote inf der
+
+  // ── Patitas redondeadas ──
+  roundRect(ctx, -18, 26, 13, 6, 3); ctx.fillStyle = cd; ctx.fill();
+  roundRect(ctx,   5, 26, 13, 6, 3); ctx.fillStyle = cd; ctx.fill();
+
+  // ── Colita circular ──
+  ctx.fillStyle = cl;
+  ctx.beginPath(); ctx.ellipse(20, 16, 5, 5, 0, 0, Math.PI*2); ctx.fill();
+
   ctx.restore();
 }
 
@@ -828,11 +883,12 @@ function render() {
     ctx.restore();
   });
 
-  // ── Conejos ──
+  // ── Conejos (Diseño D: cápsula ojos grandes) ──
   balls.forEach(b => {
     const c  = b.type==='blue' ? BLUE   : PINK;
     const cd = b.type==='blue' ? BLUE_D : PINK_D;
-    drawRabbit(b, c, cd);
+    const cl = b.type==='blue' ? BLUE_L : PINK_L;
+    drawRabbit(b, c, cd, cl);
   });
 }
 
